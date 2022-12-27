@@ -4,6 +4,8 @@ import sys
 
 
 FPS, WIDTH, HEIGHT = 50, 640, 640
+tile_width = tile_height = 32
+tile_size = tile_width, tile_height
 pygame.init()
 size = width, height = WIDTH, HEIGHT
 screen = pygame.display.set_mode(size)
@@ -32,20 +34,14 @@ def start_screen():
 
 def load_level(filename):
     filename = "data/" + filename
-    # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
-
-    # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
-
-    # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
 
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
-    # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -81,13 +77,13 @@ wall_tiles = ['T', '-', '|', 'C', '7', 'L', 'A', 'J', 't', 'D', 'U']
 #  . @ T - | C 7 L A J t D U - все использующиеся символы
 player_image = load_image('mario.png')
 
-tile_width = tile_height = 32
-tile_size = tile_width, tile_height
-
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
+        if tile_type == '.':
+            super().__init__(ground_group, all_sprites)
+        else:
+            super().__init__(walls_group, all_sprites)
         self.image = tile_images[tile_type]
         self.image = pygame.transform.scale(self.image, tile_size)
         self.rect = self.image.get_rect().move(
@@ -96,20 +92,28 @@ class Tile(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
+        super().__init__(player_group)
         self.mask = pygame.mask.from_surface(player_image)
         self.image = player_image
         self.image = pygame.transform.scale(self.image, tile_size)
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
+        self.rect = self.image.get_rect().move(pos_x, pos_y)
+        self.x, self.y = pos_x, pos_y
+
+    def find_current_tile(self):
+        pass
+
+    def move(self, dx, dy):
+        self.rect = self.rect.move(dx, dy)
+
+    def return_x_y(self):
+        return self.x, self.y
 
 
-# основной персонаж
 player = None
 
-# группы спрайтов
 all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
+walls_group = pygame.sprite.Group()
+ground_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 
 
@@ -121,7 +125,7 @@ def generate_level(level):
                 Tile('.', x, y)
             elif level[y][x] == '@':
                 Tile('.', x, y)
-                new_player = Player(x, y)
+                new_player = Player(x * tile_width, y * tile_height)
             elif level[y][x] == 'T':
                 Tile('T', x, y)
             elif level[y][x] == '-':
@@ -145,14 +149,20 @@ def generate_level(level):
             elif level[y][x] == 'U':
                 Tile('U', x, y)
     # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
+    return new_player, x + 1, y + 1
 
 
-def find_hero(level):
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '@':
-                return y, x
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def update(self, x, y):
+        self.dx -= x
+        self.dy -= y
+
+    def return_d(self):
+        return self.dx, self.dy
 
 
 if __name__ == '__main__':
@@ -161,35 +171,49 @@ if __name__ == '__main__':
     level = load_level('1.txt')
 
     running = True
-    player, level_x, level_y = generate_level(load_level('1.txt'))
+    to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
+    player, level_w, level_h = generate_level(level)
+    camera = Camera()
+    surf = pygame.Surface((level_w * tile_width, level_h * tile_height))
+    all_sprites.draw(surf)
+    step = 5
     while running:
+        dx, dy = 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
-                y, x = find_hero(level)
                 if event.key == pygame.K_s:
-                    if y + 1 not in range(len(level)):
-                        continue
-                    if level[y + 1][x] not in wall_tiles:
-                        level[y][x], level[y + 1][x] = level[y + 1][x], level[y][x]
+                    to_move_down = True
                 if event.key == pygame.K_w:
-                    if y - 1 not in range(len(level)):
-                        continue
-                    if level[y - 1][x] not in wall_tiles:
-                        level[y][x], level[y - 1][x] = level[y - 1][x], level[y][x]
+                    to_move_up = True
                 if event.key == pygame.K_d:
-                    if x + 1 not in range(len(level)):
-                        continue
-                    if level[y][x + 1] not in wall_tiles:
-                        level[y][x], level[y][x + 1] = level[y][x + 1], level[y][x]
+                    to_move_right = True
                 if event.key == pygame.K_a:
-                    if x - 1 not in range(len(level)):
-                        continue
-                    if level[y][x - 1] not in wall_tiles:
-                        level[y][x], level[y][x - 1] = level[y][x - 1], level[y][x]
-        generate_level(level)
-        all_sprites.draw(screen)
+                    to_move_left = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_s:
+                    to_move_down = False
+                elif event.key == pygame.K_w:
+                    to_move_up = False
+                elif event.key == pygame.K_d:
+                    to_move_right = False
+                elif event.key == pygame.K_a:
+                    to_move_left = False
+            if to_move_down:
+                dy += step
+            elif to_move_up:
+                dy -= step
+            elif to_move_right:
+                dx += step
+            elif to_move_left:
+                dx -= step
+        screen.fill('black')
+        moved_player, moved_x, moved_y = generate_level(level)
+        camera.update(dx, dy)
+        ds = camera.return_d()
+        screen.blit(surf, ds)
+        player_group.draw(screen)
         pygame.display.flip()
