@@ -87,7 +87,6 @@ if __name__ == '__main__':
                 return True
 
 
-
     game = True
     image1 = load_image("creature.png", colorkey=-1)
     x1 = (800 - 83) / 2
