@@ -125,7 +125,7 @@ def generate_level(level):
                 Tile('.', x, y)
             elif level[y][x] == '@':
                 Tile('.', x, y)
-                new_player = Player(x * tile_width, y * tile_height)
+                new_player = Player(x * tile_width - 320, y * tile_height - 320)
             elif level[y][x] == 'T':
                 Tile('T', x, y)
             elif level[y][x] == '-':
@@ -153,9 +153,13 @@ def generate_level(level):
 
 
 class Camera:
-    def __init__(self):
-        self.dx = 0
-        self.dy = 0
+    def __init__(self, level_num):
+        if level_num == 1:
+            self.dx = -320
+            self.dy = -320
+        else:
+            pass
+        self.level_num = level_num
 
     def update(self, x, y):
         self.dx -= x
@@ -168,12 +172,13 @@ class Camera:
 if __name__ == '__main__':
     start_screen()
     pygame.display.set_caption('Mario')
-    level = load_level('1.txt')
+    level_num = 1  # level_num будет увеличиваться с переходом на новый уровень
+    level = load_level(f'{level_num}.txt')
 
     running = True
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     player, level_w, level_h = generate_level(level)
-    camera = Camera()
+    camera = Camera(level_num)
     surf = pygame.Surface((level_w * tile_width, level_h * tile_height))
     all_sprites.draw(surf)
     step = 5
