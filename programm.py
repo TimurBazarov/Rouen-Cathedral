@@ -1,25 +1,14 @@
-from random import randint
 import pygame
-import sys
 import os
-from random import choice
-from pygame import K_s, K_w, K_a, K_d
+import sys
 
-FPS = 50
+
+FPS, WIDTH, HEIGHT = 50, 640, 640
+tile_width = tile_height = 32
+tile_size = tile_width, tile_height
 pygame.init()
-size = WIDTH, HEIGHT = 550, 550
-font = pygame.font.Font(None, 30)
-font_stats = pygame.font.Font(None, 20)
+size = width, height = WIDTH, HEIGHT
 screen = pygame.display.set_mode(size)
-
-player = None
-
-all_sprites = pygame.sprite.Group()
-walls_group = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-enemy_group = pygame.sprite.Group()
-artefacts_group = pygame.sprite.Group()
 
 
 def terminate():
@@ -28,23 +17,9 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ['Перемещение героя',
-                  '',
-                  'Камера']
-
     fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     clock = pygame.time.Clock()
-
-    text_coord = 50
-    for line in intro_text:
-        string_rendered = font.render(line, True, pygame.Color('black'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
 
     while True:
         for event in pygame.event.get():
@@ -52,17 +27,16 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
-                return
+                return  # начинаем игру
         pygame.display.flip()
         clock.tick(FPS)
 
 
 def load_level(filename):
-    filename = os.path.join('data', filename)
+    filename = "data/" + filename
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
-    player_group.empty()
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
 
 
@@ -83,8 +57,7 @@ def load_image(name, colorkey=None):
 
 
 tile_images = {
-    'void': load_image('void.png'),
-    'empty': load_image('Tile_12.png'),
+    '.': load_image('Tile_12.png'),
     'T': load_image('Tile_01.png'),
     '-': load_image('Tile_33.png'),
     '|': load_image('Tile_55.png'),
@@ -97,183 +70,62 @@ tile_images = {
     'D': load_image('Tile_34.png'),
     'U': load_image('Tile_56.png')
 }
+'''Символы стен. Например, Символ Т означает, что блок -  стена, у которой справа, слева и внизу
+ есть продолжения. Символ 7 означает правый верхний угол. Символ D означает конец стены, которая шла слева направо.
+ Дальше по аналогии.'''
+wall_tiles = ['T', '-', '|', 'C', '7', 'L', 'A', 'J', 't', 'D', 'U']
+#  . @ T - | C 7 L A J t D U - все использующиеся символы
 player_image = load_image('mario.png')
-artefacts_images = {
-    '1': load_image('artefact1.png')
-}
-
-tile_width = tile_height = 50
 
 
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
-        if tile_type == 'void':
-            super().__init__(tiles_group, walls_group, all_sprites)
+        if tile_type == '.':
+            super().__init__(ground_group, all_sprites)
         else:
-            super().__init__(tiles_group, all_sprites)
+            super().__init__(walls_group, all_sprites)
         self.image = tile_images[tile_type]
+        self.image = pygame.transform.scale(self.image, tile_size)
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
+        super().__init__(player_group)
+        self.mask = pygame.mask.from_surface(player_image)
         self.image = player_image
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x + 15, tile_height * pos_y + 5)
-        #  от углеводов (ch) зависит сколько выстрелов может сделать игрок
-        #  Жиры () - ресурс. при неполном здоровье можно восстановить хп, буквально съев свой жир
-        #  ЖУ (Жиры Углеводы) можно получить за подбираемые предметы или за убийство врагов
-        self.health = 100
-        self.fats = 20
-        self.ch = 100  # carbohydrates
-        # Статы
-        self.speed = 5
-        self.luck = 0  # Можно повысить или понизить артефактами
-        self.gun = None
+        self.image = pygame.transform.scale(self.image, tile_size)
+        self.rect = self.image.get_rect().move(pos_x, pos_y)
+        self.x, self.y = pos_x, pos_y
 
-    def will_collide(self, walls_group, action):
-        if action is None:
-            return
-        if action == 'up':
-            self.rect.y -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
-                self.rect.y += step
-                return True
-            self.rect.y += step
-            return False
-        elif action == 'down':
-            self.rect.y += step
-            if pygame.sprite.spritecollideany(self, walls_group):
-                self.rect.y -= step
-                return True
-            self.rect.y -= step
-            return False
-        elif action == 'right':
-            self.rect.x += step
-            if pygame.sprite.spritecollideany(self, walls_group):
-                self.rect.x -= step
-                return True
-            self.rect.x -= step
-            return False
-        elif action == 'left':
-            self.rect.x -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
-                self.rect.x += step
-                return True
-            self.rect.x += step
-            return False
+    def find_current_tile(self):
+        pass
 
-    def show_stats(self):
-        text = [f'Здоровье: {self.health}',
-                f'Жиры: {self.fats}',
-                f'Углеводы: {self.ch}',
-                f'Удача: {self.luck}',
-                f'Оружие: {self.gun}']
-        text_coord = 350
-        for line in text:
-            string_rendered = font_stats.render(line, True, pygame.Color('white'))
-            intro_rect = string_rendered.get_rect()
-            text_coord += 10
-            intro_rect.top = text_coord
-            intro_rect.x = 10
-            text_coord += intro_rect.height
-            screen.blit(string_rendered, intro_rect)
+    def move(self, dx, dy):
+        self.rect = self.rect.move(dx, dy)
+
+    def return_x_y(self):
+        return self.x, self.y
 
 
-class Artefact(pygame.sprite.Sprite):
-    def __init__(self, artefact_type, pos_x, pos_y):
-        super().__init__(artefacts_group, all_sprites)
-        self.image = artefacts_images[artefact_type]
-        self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
-        
-        
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, pix):
-        if level[pos_y][pos_x] == '.' or level[pos_y][pos_x] == 'E' + pix:
-            self.pos_x = pos_x
-            self.pos_y = pos_y
-            super().__init__(enemy_group, all_sprites, tiles_group)
-            self.image = load_image(pix)
-            self.rect = self.image.get_rect().move(
-                tile_width * self.pos_x, tile_height * self.pos_y)
-            level[self.pos_y][self.pos_x] = 'E' + pix
+player = None
 
-    def path_find(self, finPoint1, finPoint2):
-        a = find_player(level)
-        finPoint = (finPoint1, finPoint2)
-        stPoint = (self.pos_y, self.pos_x)
-        self.pathArr = [[0 if x == '.' else -1 for x in y] for y in level_path]
-        self.pathArr[stPoint[0]][stPoint[1]] = 1
-        self.pathArr[finPoint[0]][finPoint[1]] = 0
-        if level[finPoint[0]][finPoint[1]][0] == 'E':
-            return False
-        weight = 1
-        for i in range(400):
-            weight += 1
-            for y in range(len(level)):
-                for x in range(len(level)):
-                    if self.pathArr[y][x] == (weight - 1):
-                        if y >= 0 and self.pathArr[y - 1][x] == 0:
-                            self.pathArr[y - 1][x] = weight
-                        if y < len(level) and self.pathArr[y + 1][x] == 0:
-                            self.pathArr[y + 1][x] = weight
-                        if x >= 0 and self.pathArr[y][x - 1] == 0:
-                            self.pathArr[y][x - 1] = weight
-                        if x < len(level) and self.pathArr[y][x + 1] == 0:
-                            self.pathArr[y][x + 1] = weight
-                        if (abs(y - finPoint[0]) + abs(x - finPoint[1])) == 1:
-                            self.pathArr[finPoint[0]][finPoint[1]] = weight
-                            return self.pathArr
-        return False
-
-    def printPath(self, pathArr, finPoint1, finPoint2):
-        y = finPoint2
-        x = finPoint1
-        weight = pathArr[y][x]
-        result = list(range(weight))
-        while weight:
-            weight -= 1
-            if y > 0 and pathArr[y - 1][x] == weight:
-                y -= 1
-                result[weight] = 'down'
-            elif y < (len(pathArr) - 1) and pathArr[y + 1][x] == weight:
-                result[weight] = 'up'
-                y += 1
-            elif x > 0 and pathArr[y][x - 1] == weight:
-                result[weight] = 'right'
-                x -= 1
-            elif x < (len(pathArr[y]) - 1) and pathArr[y][x + 1] == weight:
-                result[weight] = 'left'
-                x += 1
-        return result[1:]
+all_sprites = pygame.sprite.Group()
+walls_group = pygame.sprite.Group()
+ground_group = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
 
 
-def generate_level(level, player=None):
-    all_sprites.empty()
-    walls_group.empty()
-    tiles_group.empty()
-    artefacts_group.empty()
-    enemy_group.empty()
+def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
-                Tile('empty', x, y)
-            elif level[y][x] == '1':
-                Tile('empty', x, y)
-                Artefact('1', x, y)
-            elif level[y][x] == '#':
-                Tile('void', x, y)
+                Tile('.', x, y)
             elif level[y][x] == '@':
-                Tile('empty', x, y)
-                if player is not None:
-                    new_player = Player(x, y)
-            elif level[y][x][0] == 'E':
-                a = level[y][x][1:]
-                Tile('empty', x, y)
-                Enemy(x, y, a)
+                Tile('.', x, y)
+                new_player = Player(x * tile_width, y * tile_height)
             elif level[y][x] == 'T':
                 Tile('T', x, y)
             elif level[y][x] == '-':
@@ -296,39 +148,14 @@ def generate_level(level, player=None):
                 Tile('D', x, y)
             elif level[y][x] == 'U':
                 Tile('U', x, y)
-    return new_player, x, y
-
-
-def find_player(level):
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '@':
-                return y * 50, x * 50
-
-
-def choose_random_empty_coords(level):
-    empty = []
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                empty.append((y, x))
-    y, x = choice(empty)
-    level[y][x] = '1'
+    # вернем игрока, а также размер поля в клетках
+    return new_player, x + 1, y + 1
 
 
 class Camera:
-    def __init__(self, level_num):
-        if level_num == 1:
-            self.dx = -320
-            self.dy = -320
-        else:
-            pass
+    def __init__(self):
         self.dx = 0
         self.dy = 0
-
-    def apply(self, obj):
-        obj.rect.x += self.dx
-        obj.rect.y += self.dy
 
     def update(self, x, y):
         self.dx -= x
@@ -340,42 +167,17 @@ class Camera:
 
 if __name__ == '__main__':
     start_screen()
-    screen.fill('black')
-    pygame.display.set_caption('Game')
-    #  Блок, отвечающий за rogue-like смену комнаты
-    #  ----------
-    level_num = choice(range(1, 6))
-    level_size = choice(['small', 'large'])
-    level = load_level(f'{level_size}/level{level_num}.txt')
-    camera = Camera(level_num)
-    choose_random_empty_coords(level)
-    player, level_x, level_y = generate_level(level, player=1)
-    level_path = level.copy()
-    pl_y, pl_x = find_player(level)
-    all_sprites.draw(screen)
-    #  ----------
-    pygame.display.flip()
+    pygame.display.set_caption('Mario')
+    level = load_level('1.txt')
 
-    while len(enemy_group) != 2:
-        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
-    while len(enemy_group) != 4:
-        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy2.png')
-
-    MYEVENTTYPE = pygame.USEREVENT + 1
-    PATHEVENTTYPE = pygame.USEREVENT + 2
-    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
-
-    to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
+    to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
+    player, level_w, level_h = generate_level(level)
+    camera = Camera()
+    surf = pygame.Surface((level_w * tile_width, level_h * tile_height))
+    all_sprites.draw(surf)
     step = 5
-    moves_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
-    to_move_flag = False
-    see = False
-
-    pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)
-    pygame.time.set_timer(PATHEVENTTYPE, 1000)
     while running:
-        action = None
         dx, dy = 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -383,66 +185,35 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
-                moves_dict[event.key] = True
-                if event.key == pygame.K_e:
-                    level_num = choice(range(1, 6))
-                    level_size = choice(['small', 'large'])
-                    level = load_level(f'{level_size}/level{level_num}.txt')
-                    camera = Camera(level_num)
-                    player, level_x, level_y = generate_level(level, player=1)
-                    continue
+                if event.key == pygame.K_s:
+                    to_move_down = True
+                if event.key == pygame.K_w:
+                    to_move_up = True
+                if event.key == pygame.K_d:
+                    to_move_right = True
+                if event.key == pygame.K_a:
+                    to_move_left = True
             if event.type == pygame.KEYUP:
-                moves_dict[event.key] = False
-            if event.type == MYEVENTTYPE:
-                to_move_flag = True
-            if event.type == PATHEVENTTYPE:
-                see = True
-        if not to_move_flag:
-            continue
-        if moves_dict[K_s]:
-            action = 'down'
-            dy += step
-        elif moves_dict[K_w]:
-            action = 'up'
-            dy -= step
-        elif moves_dict[K_d]:
-            action = 'right'
-            dx += step
-        elif moves_dict[K_a]:
-            action = 'left'
-            dx -= step
-        if not player.will_collide(walls_group, action):
-            screen.fill('black')
-            moved_player, moved_x, moved_y = generate_level(level)
-            camera.update(dx, dy)
-            ds = camera.return_d()
-            for sprite in tiles_group:
-                camera.apply(sprite)
-            for sprite in artefacts_group:
-                camera.apply(sprite)
-            pl_x += dx
-            pl_y += dy
-            if see:
-                for enemy in enemy_group:
-                    crdy = pl_y // 50
-                    crdx = pl_x // 50
-                    ch = enemy.path_find(crdy, crdx)
-                    if ch:
-                        comands = enemy.printPath(ch, crdx, crdy)[0]
-                        sav = level[enemy.pos_y][enemy.pos_x]
-                        level[enemy.pos_y][enemy.pos_x] = '.'
-                        if comands == 'left':
-                            enemy.pos_x -= 1
-                        if comands == 'right':
-                            enemy.pos_x += 1
-                        if comands == 'down':
-                            enemy.pos_y += 1
-                        if comands == 'up':
-                            enemy.pos_y -= 1
-                        level[enemy.pos_y][enemy.pos_x] = sav
-            see = False
-            to_move_flag = False
-        all_sprites.draw(screen)
+                if event.key == pygame.K_s:
+                    to_move_down = False
+                elif event.key == pygame.K_w:
+                    to_move_up = False
+                elif event.key == pygame.K_d:
+                    to_move_right = False
+                elif event.key == pygame.K_a:
+                    to_move_left = False
+            if to_move_down:
+                dy += step
+            elif to_move_up:
+                dy -= step
+            elif to_move_right:
+                dx += step
+            elif to_move_left:
+                dx -= step
+        screen.fill('black')
+        moved_player, moved_x, moved_y = generate_level(level)
+        camera.update(dx, dy)
+        ds = camera.return_d()
+        screen.blit(surf, ds)
         player_group.draw(screen)
-        player.show_stats()
         pygame.display.flip()
