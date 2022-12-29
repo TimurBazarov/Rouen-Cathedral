@@ -85,7 +85,6 @@ class Tile(pygame.sprite.Sprite):
         else:
             super().__init__(walls_group, all_sprites)
         self.image = tile_images[tile_type]
-        self.image = pygame.transform.scale(self.image, tile_size)
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
 
@@ -95,7 +94,6 @@ class Player(pygame.sprite.Sprite):
         super().__init__(player_group)
         self.mask = pygame.mask.from_surface(player_image)
         self.image = player_image
-        self.image = pygame.transform.scale(self.image, tile_size)
         self.rect = self.image.get_rect().move(pos_x, pos_y)
         self.x, self.y = pos_x, pos_y
 
