@@ -2,9 +2,10 @@ import pygame
 import sys
 import os
 from random import choice
+from pygame import K_s, K_w, K_a, K_d
 
 
-FPS = 50
+FPS = 25
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
 screen = pygame.display.set_mode(size)
@@ -163,51 +164,45 @@ if __name__ == '__main__':
     all_sprites.draw(screen)
     pygame.display.flip()
 
-    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP])
+    MYEVENTTYPE = pygame.USEREVENT + 1
+    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
 
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
-    step = 5
+    step = 10
+    moves_up_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
+    to_move_flag = False
+
+    pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)
     while running:
         dx, dy = 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                if event.type == pygame.KEYDOWN:
-                    '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
-                        персонаж не выходит за рамки уровня.'''
-                    if event.key == pygame.K_s:
-                        to_move_down = True
-                    if event.key == pygame.K_w:
-                        to_move_up = True
-                    if event.key == pygame.K_d:
-                        to_move_right = True
-                    if event.key == pygame.K_a:
-                        to_move_left = True
+                '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
+                    персонаж не выходит за рамки уровня.'''
+                moves_up_dict[event.key] = True
             if event.type == pygame.KEYUP:
-                if event.key == pygame.K_s:
-                    to_move_down = False
-                elif event.key == pygame.K_w:
-                    to_move_up = False
-                elif event.key == pygame.K_d:
-                    to_move_right = False
-                elif event.key == pygame.K_a:
-                    to_move_left = False
-        if to_move_down:
+                moves_up_dict[event.key] = False
+            if event.type == MYEVENTTYPE:
+                to_move_flag = True
+        if moves_up_dict[K_s]:
             dy += step
-        elif to_move_up:
+        elif moves_up_dict[K_w]:
             dy -= step
-        elif to_move_right:
+        elif moves_up_dict[K_d]:
             dx += step
-        elif to_move_left:
+        elif moves_up_dict[K_a]:
             dx -= step
-        screen.fill('black')
-        moved_player, moved_x, moved_y = generate_level(level)
-        camera.update(dx, dy)
-        ds = camera.return_d()
-        for sprite in tiles_group:
-            camera.apply(sprite)
-        all_sprites.draw(screen)
-        player_group.draw(screen)
-        pygame.display.flip()
+        if to_move_flag:
+            screen.fill('black')
+            moved_player, moved_x, moved_y = generate_level(level)
+            camera.update(dx, dy)
+            ds = camera.return_d()
+            for sprite in tiles_group:
+                camera.apply(sprite)
+            all_sprites.draw(screen)
+            player_group.draw(screen)
+            pygame.display.flip()
+            to_move_flag = False
