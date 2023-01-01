@@ -5,7 +5,7 @@ from random import choice
 from pygame import K_s, K_w, K_a, K_d
 
 
-FPS = 25
+FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
 screen = pygame.display.set_mode(size)
@@ -109,6 +109,8 @@ player_group = pygame.sprite.Group()
 
 def generate_level(level):
     all_sprites.empty()
+    walls_group.empty()
+    tiles_group.empty()
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
@@ -204,5 +206,6 @@ if __name__ == '__main__':
                 camera.apply(sprite)
             all_sprites.draw(screen)
             player_group.draw(screen)
-            pygame.display.flip()
             to_move_flag = False
+        pygame.display.flip()
+
