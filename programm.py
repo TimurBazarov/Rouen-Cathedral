@@ -4,11 +4,19 @@ import os
 from random import choice
 from pygame import K_s, K_w, K_a, K_d
 
-
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
+font = pygame.font.Font(None, 30)
+font_stats = pygame.font.Font(None, 20)
 screen = pygame.display.set_mode(size)
+
+player = None
+
+all_sprites = pygame.sprite.Group()
+walls_group = pygame.sprite.Group()
+tiles_group = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
 
 
 def terminate():
@@ -25,10 +33,9 @@ def start_screen():
     screen.blit(fon, (0, 0))
     clock = pygame.time.Clock()
 
-    font = pygame.font.Font(None, 30)
     text_coord = 50
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
+        string_rendered = font.render(line, True, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -52,6 +59,7 @@ def load_level(filename):
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
+    player_group.empty()
     return list(map(lambda x: list(x.ljust(max_width, '.')), level_map))
 
 
@@ -97,6 +105,16 @@ class Player(pygame.sprite.Sprite):
         self.image = player_image
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
+        #  от углеводов (ch) зависит сколько выстрелов может сделать игрок
+        #  Жиры () - ресурс. при неполном здоровье можно восстановить хп, буквально съев свой жир
+        #  ЖУ (Жиры Углеводы) можно получить за подбираемые предметы или за убийство врагов
+        self.health = 100
+        self.fats = 20
+        self.ch = 100  # carbohydrates
+        # Статы
+        self.speed = 5
+        self.luck = 0  # Можно повысить или понизить артефактами
+        self.gun = None
 
     def will_collide(self, walls_group, action):
         if action is None:
@@ -130,13 +148,21 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += step
             return False
 
-
-player = None
-
-all_sprites = pygame.sprite.Group()
-walls_group = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
+    def show_stats(self):
+        text = [f'Здоровье: {self.health}',
+                f'Жиры: {self.fats}',
+                f'Углеводы: {self.ch}',
+                f'Удача: {self.luck}',
+                f'Оружие: {self.gun}']
+        text_coord = 350
+        for line in text:
+            string_rendered = font_stats.render(line, True, pygame.Color('white'))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 10
+            intro_rect.top = text_coord
+            intro_rect.x = 10
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
 
 
 def generate_level(level, player=None):
@@ -191,13 +217,14 @@ if __name__ == '__main__':
     screen.fill('black')
     pygame.display.set_caption('Game')
     #  Блок, отвечающий за rogue-like смену комнаты
+    #  ----------
     level_num = choice(range(1, 6))
     level_size = choice(['small', 'large'])
     level = load_level(f'{level_size}/level{level_num}.txt')
-
     camera = Camera(level_num)
     player, level_x, level_y = generate_level(level, player=1)
     all_sprites.draw(screen)
+    #  ----------
     pygame.display.flip()
 
     MYEVENTTYPE = pygame.USEREVENT + 1
@@ -206,7 +233,7 @@ if __name__ == '__main__':
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
     step = 5
-    moves_up_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
+    moves_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
     to_move_flag = False
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)
@@ -219,23 +246,30 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
-                moves_up_dict[event.key] = True
+                moves_dict[event.key] = True
+                if event.key == pygame.K_e:
+                    level_num = choice(range(1, 6))
+                    level_size = choice(['small', 'large'])
+                    level = load_level(f'{level_size}/level{level_num}.txt')
+                    camera = Camera(level_num)
+                    player, level_x, level_y = generate_level(level, player=1)
+                    continue
             if event.type == pygame.KEYUP:
-                moves_up_dict[event.key] = False
+                moves_dict[event.key] = False
             if event.type == MYEVENTTYPE:
                 to_move_flag = True
         if not to_move_flag:
             continue
-        if moves_up_dict[K_s]:
+        if moves_dict[K_s]:
             action = 'down'
             dy += step
-        elif moves_up_dict[K_w]:
+        elif moves_dict[K_w]:
             action = 'up'
             dy -= step
-        elif moves_up_dict[K_d]:
+        elif moves_dict[K_d]:
             action = 'right'
             dx += step
-        elif moves_up_dict[K_a]:
+        elif moves_dict[K_a]:
             action = 'left'
             dx -= step
         if not player.will_collide(walls_group, action):
@@ -247,6 +281,6 @@ if __name__ == '__main__':
                 camera.apply(sprite)
             all_sprites.draw(screen)
             player_group.draw(screen)
+            player.show_stats()
             to_move_flag = False
         pygame.display.flip()
-
