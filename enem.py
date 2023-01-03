@@ -5,7 +5,6 @@ import os
 from random import choice
 from pygame import K_s, K_w, K_a, K_d
 
-
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
@@ -286,7 +285,7 @@ if __name__ == '__main__':
             pl_y += dy
             if see:
                 for enemy in enemy_group:
-                    crdy  = pl_y // 50
+                    crdy = pl_y // 50
                     crdx = pl_x // 50
                     ch = enemy.path_find(crdy, crdx)
                     if ch:
