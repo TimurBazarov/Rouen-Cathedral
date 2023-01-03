@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+from random import choice
 
 
 FPS, WIDTH, HEIGHT = 50, 640, 640
@@ -76,6 +77,9 @@ tile_images = {
 wall_tiles = ['T', '-', '|', 'C', '7', 'L', 'A', 'J', 't', 'D', 'U']
 #  . @ T - | C 7 L A J t D U - все использующиеся символы
 player_image = load_image('mario.png')
+artefacts_images = {
+    '1': load_image('artefact1.png')
+}
 
 
 class Tile(pygame.sprite.Sprite):
@@ -109,12 +113,20 @@ class Player(pygame.sprite.Sprite):
         return self.x, self.y
 
 
+class Artefact(pygame.sprite.Sprite):
+    def __init__(self, artefact_type, pos_x, pos_y):
+        super().__init__(artefacts_group)
+        self.image = artefacts_images[artefact_type]
+        self.rect = self.image.get_rect().move(pos_x * tile_width, pos_y * tile_height)
+
+
 player = None
 
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 ground_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+artefacts_group = pygame.sprite.Group()
 
 
 def generate_level(level):
@@ -152,6 +164,17 @@ def generate_level(level):
     return new_player, x + 1, y + 1
 
 
+def choose_random_empty_coords(level):
+    empty = []
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                empty.append((y, x))
+    y, x = choice(empty)
+    level[y][x] = '1'
+    return y, x
+
+
 class Camera:
     def __init__(self):
         self.dx = 0
@@ -174,6 +197,7 @@ if __name__ == '__main__':
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     player, level_w, level_h = generate_level(level)
     camera = Camera()
+    Artefact('1', *choose_random_empty_coords(level))
     surf = pygame.Surface((level_w * tile_width, level_h * tile_height))
     all_sprites.draw(surf)
     step = 5
@@ -214,6 +238,7 @@ if __name__ == '__main__':
         moved_player, moved_x, moved_y = generate_level(level)
         camera.update(dx, dy)
         ds = camera.return_d()
+        artefacts_group.draw(surf)
         screen.blit(surf, ds)
         player_group.draw(screen)
         pygame.display.flip()
