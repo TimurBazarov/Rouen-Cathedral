@@ -76,6 +76,9 @@ tile_images = {
     'empty': load_image('grass.png')
 }
 player_image = load_image('mario.png')
+artefacts_images = {
+    '1': load_image('artefact1.png')
+}
 
 tile_width = tile_height = 50
 
@@ -131,23 +134,35 @@ class Player(pygame.sprite.Sprite):
             return False
 
 
+class Artefact(pygame.sprite.Sprite):
+    def __init__(self, artefact_type, pos_x, pos_y):
+        super().__init__(artefacts_group, all_sprites)
+        self.image = artefacts_images[artefact_type]
+        self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
+
+
 player = None
 
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+artefacts_group = pygame.sprite.Group()
 
 
 def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
     tiles_group.empty()
+    artefacts_group.empty()
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
                 Tile('empty', x, y)
+            elif level[y][x] == '1':
+                Tile('empty', x, y)
+                Artefact('1', x, y)
             elif level[y][x] == '#':
                 Tile('wall', x, y)
             elif level[y][x] == '@':
@@ -162,6 +177,16 @@ def find_player(level):
         for x in range(len(level[y])):
             if level[y][x] == '@':
                 return y, x
+
+
+def choose_random_empty_coords(level):
+    empty = []
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                empty.append((y, x))
+    y, x = choice(empty)
+    level[y][x] = '1'
 
 
 class Camera:
@@ -196,6 +221,7 @@ if __name__ == '__main__':
     level = load_level(f'{level_size}/level{level_num}.txt')
 
     camera = Camera(level_num)
+    choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     all_sprites.draw(screen)
     pygame.display.flip()
@@ -245,8 +271,9 @@ if __name__ == '__main__':
             ds = camera.return_d()
             for sprite in tiles_group:
                 camera.apply(sprite)
+            for sprite in artefacts_group:
+                camera.apply(sprite)
             all_sprites.draw(screen)
             player_group.draw(screen)
             to_move_flag = False
         pygame.display.flip()
-
