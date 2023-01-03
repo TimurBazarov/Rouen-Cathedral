@@ -98,6 +98,38 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
 
+    def will_collide(self, walls_group, action):
+        if action is None:
+            return
+        if action == 'up':
+            self.rect.y -= step
+            if pygame.sprite.spritecollideany(self, walls_group):
+                self.rect.y += step
+                return True
+            self.rect.y += step
+            return False
+        elif action == 'down':
+            self.rect.y += step
+            if pygame.sprite.spritecollideany(self, walls_group):
+                self.rect.y -= step
+                return True
+            self.rect.y -= step
+            return False
+        elif action == 'right':
+            self.rect.x += step
+            if pygame.sprite.spritecollideany(self, walls_group):
+                self.rect.x -= step
+                return True
+            self.rect.x -= step
+            return False
+        elif action == 'left':
+            self.rect.x -= step
+            if pygame.sprite.spritecollideany(self, walls_group):
+                self.rect.x += step
+                return True
+            self.rect.x += step
+            return False
+
 
 player = None
 
@@ -107,7 +139,7 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 
 
-def generate_level(level):
+def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
     tiles_group.empty()
@@ -120,7 +152,8 @@ def generate_level(level):
                 Tile('wall', x, y)
             elif level[y][x] == '@':
                 Tile('empty', x, y)
-                new_player = Player(x, y)
+                if player is not None:
+                    new_player = Player(x, y)
     return new_player, x, y
 
 
@@ -157,12 +190,13 @@ if __name__ == '__main__':
     start_screen()
     screen.fill('black')
     pygame.display.set_caption('Game')
+    #  Блок, отвечающий за rogue-like смену комнаты
     level_num = choice(range(1, 6))
     level_size = choice(['small', 'large'])
     level = load_level(f'{level_size}/level{level_num}.txt')
 
     camera = Camera(level_num)
-    player, level_x, level_y = generate_level(level)
+    player, level_x, level_y = generate_level(level, player=1)
     all_sprites.draw(screen)
     pygame.display.flip()
 
@@ -171,12 +205,13 @@ if __name__ == '__main__':
 
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
-    step = 10
+    step = 5
     moves_up_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
     to_move_flag = False
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)
     while running:
+        action = None
         dx, dy = 0, 0
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -189,15 +224,21 @@ if __name__ == '__main__':
                 moves_up_dict[event.key] = False
             if event.type == MYEVENTTYPE:
                 to_move_flag = True
+        if not to_move_flag:
+            continue
         if moves_up_dict[K_s]:
+            action = 'down'
             dy += step
         elif moves_up_dict[K_w]:
+            action = 'up'
             dy -= step
         elif moves_up_dict[K_d]:
+            action = 'right'
             dx += step
         elif moves_up_dict[K_a]:
+            action = 'left'
             dx -= step
-        if to_move_flag:
+        if not player.will_collide(walls_group, action):
             screen.fill('black')
             moved_player, moved_x, moved_y = generate_level(level)
             camera.update(dx, dy)
