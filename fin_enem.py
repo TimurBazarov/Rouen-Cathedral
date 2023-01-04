@@ -21,6 +21,7 @@ walls_group = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
+artefacts_group = pygame.sprite.Group()
 
 
 def terminate():
@@ -99,6 +100,9 @@ tile_images = {
     'U': load_image('Tile_56.png')
 }
 player_image = load_image('mario.png')
+artefacts_images = {
+    '1': load_image('artefact1.png')
+}
 
 tile_width = tile_height = 50
 
@@ -180,6 +184,23 @@ class Player(pygame.sprite.Sprite):
             screen.blit(string_rendered, intro_rect)
 
 
+class Artefact(pygame.sprite.Sprite):
+    def __init__(self, artefact_type, pos_x, pos_y):
+        super().__init__(artefacts_group, all_sprites)
+        self.image = artefacts_images[artefact_type]
+        self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
+
+
+def choose_random_empty_coords(level):
+    empty = []
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                empty.append((y, x))
+    y, x = choice(empty)
+    level[y][x] = '1'
+
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, pix):
         if level[pos_y][pos_x] != '#':
@@ -206,7 +227,6 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect = self.image.get_rect().move(
                     tile_width * self.pos_x, tile_height * self.pos_y)
                 level_path[self.pos_y][self.pos_x] = 'E' + pix
-
 
     def path_find(self, finPoint1, finPoint2):
         a = find_player(level)
@@ -281,12 +301,12 @@ class Enemy(pygame.sprite.Sprite):
         self.last_y = y
 
 
-
 def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
     tiles_group.empty()
     # enemy_group.empty()
+    artefacts_group.empty()
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
@@ -294,6 +314,9 @@ def generate_level(level, player=None):
                 Tile('empty', x, y)
             elif level[y][x] == '#':
                 Tile('void', x, y)
+            elif level[y][x] == '1':
+                Tile('empty', x, y)
+                Artefact('1', x, y)
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 if player is not None:
@@ -366,6 +389,7 @@ if __name__ == '__main__':
     level = load_level(f'{level_size}/level{level_num}.txt')
     level_path = deepcopy(level)
     camera = Camera(level_num)
+    choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
@@ -438,6 +462,8 @@ if __name__ == '__main__':
             ds = camera.return_d()
             for sprite in tiles_group:
                 camera.apply(sprite)
+            for sprite in artefacts_group:
+                camera.apply(sprite)
             for obj in enemy_group:
                 print(obj.last_x, obj.last_y)
                 print(obj.pos_x, obj.pos_y)
@@ -486,3 +512,4 @@ if __name__ == '__main__':
         enemy_group.draw(screen)
         player.show_stats()
         pygame.display.flip()
+        

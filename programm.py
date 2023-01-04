@@ -249,6 +249,7 @@ class Enemy(pygame.sprite.Sprite):
                 x += 1
         return result[1:]
 
+
 def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
