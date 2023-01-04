@@ -6,12 +6,12 @@ from random import choice
 from pygame import K_s, K_w, K_a, K_d
 from copy import copy, deepcopy
 
-
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
 font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
+font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 
 player = None
@@ -179,6 +179,11 @@ class Player(pygame.sprite.Sprite):
             text_coord += intro_rect.height
             screen.blit(string_rendered, intro_rect)
 
+    def is_dead(self):
+        if self.health > 0:
+            return False
+        return True
+
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, pix):
@@ -207,12 +212,11 @@ class Enemy(pygame.sprite.Sprite):
                     tile_width * self.pos_x, tile_height * self.pos_y)
                 level_path[self.pos_y][self.pos_x] = 'E' + pix
 
-
     def path_find(self, finPoint1, finPoint2):
         a = find_player(level)
         finPoint = (finPoint1, finPoint2)
         stPoint = (self.pos_y, self.pos_x)
-        self.pathArr = [[-1 if x == '#' or x[0] == 'E'else 0 for x in y] for y in level_path]
+        self.pathArr = [[-1 if x == '#' or x[0] == 'E' else 0 for x in y] for y in level_path]
         self.pathArr[stPoint[0]][stPoint[1]] = 1
         self.pathArr[finPoint[0]][finPoint[1]] = 0
         if level_path[finPoint[0]][finPoint[1]][0] == 'E':
@@ -279,7 +283,6 @@ class Enemy(pygame.sprite.Sprite):
     def last(self, x, y):
         self.last_x = x
         self.last_y = y
-
 
 
 def generate_level(level, player=None):
@@ -391,10 +394,16 @@ if __name__ == '__main__':
     to_move_flag = False
     see = False
     ssav = False
+    level_cleared = False
 
-    pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)
+    pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)  # FPS
     pygame.time.set_timer(PATHEVENTTYPE, 1000)
+
+    artifact_inventory = []  # ИНВЕНТАРЬ АРТЕФАКТОВ ОЧЕНЬ ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     while running:
+        if len(enemy_group) == 0:  # Если уровень зачищен
+            level_cleared = True
         action = None
         dx, dy = 0, 0
         for event in pygame.event.get():
@@ -404,7 +413,7 @@ if __name__ == '__main__':
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
                 moves_dict[event.key] = True
-                if event.key == pygame.K_e:
+                if event.key == pygame.K_e and level_cleared:
                     level_num = choice(range(1, 6))
                     level_size = choice(['small', 'large'])
                     level = load_level(f'{level_size}/level{level_num}.txt')
@@ -484,5 +493,14 @@ if __name__ == '__main__':
         all_sprites.draw(screen)
         player_group.draw(screen)
         enemy_group.draw(screen)
+
+        if player.is_dead():
+            player_group.empty()
+            string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
+                                                True, pygame.Color('white'))
+            rect = string_rendered.get_rect()
+            screen.blit(string_rendered, rect)
+            artifact_inventory = []
         player.show_stats()
+
         pygame.display.flip()
