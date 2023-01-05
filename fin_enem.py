@@ -85,7 +85,6 @@ def load_image(name, colorkey=None):
 
 
 tile_images = {
-    'void': load_image('void.png'),
     'empty': load_image('Tile_12.png'),
     'T': load_image('Tile_01.png'),
     '-': load_image('Tile_33.png'),
@@ -103,6 +102,12 @@ player_image = load_image('mario.png')
 artefacts_images = {
     '1': load_image('artefact1.png')
 }
+void_images = dict()
+count = 1
+for i in range(1, 11):
+    for i1 in range(1, 11):
+        void_images[count] = load_image(f'void{i}{i1}.png')
+        count += 1
 
 tile_width = tile_height = 50
 
@@ -111,9 +116,11 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         if tile_type == 'void':
             super().__init__(tiles_group, walls_group, all_sprites)
+            num = randint(1, 100)
+            self.image = void_images[num]
         else:
             super().__init__(tiles_group, all_sprites)
-        self.image = tile_images[tile_type]
+            self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
 
