@@ -28,6 +28,9 @@ artefacts_group = pygame.sprite.Group()
 with open('enemys.csv') as csvfile:
     reader = csv.reader(csvfile, delimiter=';')
     enem_stat = [i for i in list(reader)[1:]]
+with open('renemys.csv') as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    renem_stat = [i for i in list(reader)[1:]]
 
 
 def terminate():
@@ -224,10 +227,14 @@ class Enemy(pygame.sprite.Sprite):
             if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
                 self.end_walk = False
                 self.hp = hp
+                self.t = 0
                 self.dmg = dmg
                 self.pix = pix
                 self.pos_x = pos_x
                 self.v = v
+                self.clock = pygame.time.Clock()
+                self.forw = '0'
+                self.k = 0
                 self.pos_y = pos_y
                 self.timer = time.time()
                 self.last_x = pos_x
@@ -312,16 +319,22 @@ class Enemy(pygame.sprite.Sprite):
         self.last_y = y
 
 class Range_enemy(Enemy):
-    def __init__(self, pos_x, pos_y, pix, v, hp, dmg, range):
+    def __init__(self, pos_x, pos_y, pix, v, hp, dmg, range, b_speed, b_pix):
         if level[pos_y][pos_x] != '#':
             if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
                 super().__init__(pos_x, pos_y, pix, v, hp, dmg)
                 self.end_walk = False
+                self.b_speed = b_speed
+                self.b_pix = b_pix
                 self.pix = pix
                 self.hp = hp
                 self.dmg = dmg
                 self.range = range
                 self.pos_x = pos_x
+                self.clock = pygame.time.Clock()
+                self.forw = '0'
+                self.k = 0
+                self.t = 0
                 self.v = v
                 self.pos_y = pos_y
                 self.timer = time.time()
@@ -436,10 +449,9 @@ if __name__ == '__main__':
         Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
               int(enem_sta[2]), int(enem_sta[3]))
     while len(enemy_group) != all_en:
-    # while len(enemy_group) != 2:
-    #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
-    # while len(enemy_group) != 4:
-    #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy2.png')
+        enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
+        Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
+              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6])
     MYEVENTTYPE = pygame.USEREVENT + 1
     PATHEVENTTYPE = pygame.USEREVENT + 2
     pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
@@ -450,7 +462,7 @@ if __name__ == '__main__':
     to_move_flag = False
     see = False
     ssav = False
-    level_cleared = False
+    level_cleared = True
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)  # FPS
     pygame.time.set_timer(PATHEVENTTYPE, 1000)
@@ -506,7 +518,21 @@ if __name__ == '__main__':
                     level_num = choice(range(1, 6))
                     level_size = choice(['small', 'large'])
                     level = load_level(f'{level_size}/level{level_num}.txt')
+                    level_path = deepcopy(level)
                     camera = Camera(level_num)
+                    player, level_x, level_y = generate_level(level, player=1)
+                    enemy_group.empty()
+                    all_en = randint(5, 8)
+                    m_en = randint(4, all_en - 1)
+                    while len(enemy_group) != m_en:
+                        enem_sta = enem_stat[randint(0, len(enem_stat) - 1)]
+                        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
+                              int(enem_sta[2]), int(enem_sta[3]))
+                    while len(enemy_group) != all_en:
+                        enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
+                        Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
+                                    int(enem_sta[1]),
+                                    int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6])
                     continue
             if event.type == pygame.KEYUP:
                 moves_dict[event.key] = False
