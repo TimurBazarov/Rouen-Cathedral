@@ -1,4 +1,5 @@
-import time
-t = time.time()
-time.sleep(5)
-print(time.time() - t)
+import  csv
+with open('enemys.csv') as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    a = [i for i in list(reader)[1:]]
+    print(a)

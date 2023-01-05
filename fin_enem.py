@@ -5,7 +5,9 @@ import sys
 import os
 from random import choice
 from pygame import K_s, K_w, K_a, K_d
-from copy import copy, deepcopy
+from copy import deepcopy
+import csv
+
 
 FPS = 50
 pygame.init()
@@ -23,6 +25,9 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 artefacts_group = pygame.sprite.Group()
+with open('enemys.csv') as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    enem_stat = [i for i in list(reader)[1:]]
 
 
 def terminate():
@@ -213,29 +218,18 @@ def choose_random_empty_coords(level):
     y, x = choice(empty)
     level[y][x] = '1'
 
-
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, pix, v):
+    def __init__(self, pos_x, pos_y, pix, v, hp, dmg):
         if level[pos_y][pos_x] != '#':
-            if enem_gen:
-                if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
-                    self.end_walk = False
-                    self.pix = pix
-                    self.pos_x = pos_x
-                    self.v = v
-                    self.pos_y = pos_y
-                    self.timer = time.time()
-                    self.last_x = pos_x
-                    self.last_y = pos_y
-                    super().__init__(enemy_group, all_sprites, tiles_group)
-                    self.image = load_image(pix)
-                    self.rect = self.image.get_rect().move(
-                        tile_width * self.pos_x, tile_height * self.pos_y)
-                    level_path[self.pos_y][self.pos_x] = 'E' + pix
-            else:
+            if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
+                self.end_walk = False
+                self.hp = hp
+                self.dmg = dmg
                 self.pix = pix
                 self.pos_x = pos_x
+                self.v = v
                 self.pos_y = pos_y
+                self.timer = time.time()
                 self.last_x = pos_x
                 self.last_y = pos_y
                 super().__init__(enemy_group, all_sprites, tiles_group)
@@ -317,6 +311,28 @@ class Enemy(pygame.sprite.Sprite):
         self.last_x = x
         self.last_y = y
 
+class Range_enemy(Enemy):
+    def __init__(self, pos_x, pos_y, pix, v, hp, dmg, range):
+        if level[pos_y][pos_x] != '#':
+            if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
+                super().__init__(pos_x, pos_y, pix, v, hp, dmg)
+                self.end_walk = False
+                self.pix = pix
+                self.hp = hp
+                self.dmg = dmg
+                self.range = range
+                self.pos_x = pos_x
+                self.v = v
+                self.pos_y = pos_y
+                self.timer = time.time()
+                self.last_x = pos_x
+                self.last_y = pos_y
+                self.image = load_image(pix)
+                self.rect = self.image.get_rect().move(
+                    tile_width * self.pos_x, tile_height * self.pos_y)
+                level_path[self.pos_y][self.pos_x] = 'E' + pix
+
+
 
 def generate_level(level, player=None):
     all_sprites.empty()
@@ -384,8 +400,8 @@ class Camera:
         self.dy = 0
 
     def apply(self, obj):
-        obj.rect.x += self.dx
-        obj.rect.y += self.dy
+        obj.rect.x -= dx
+        obj.rect.y -= dy
 
     def update(self, x, y):
         self.dx -= x
@@ -413,14 +429,17 @@ if __name__ == '__main__':
     comand_list = []
     #  ----------
     pygame.display.flip()
-    enem_gen = True
-    while len(enemy_group) != 3:
-        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy3.png', 50)
+    all_en = randint(5, 8)
+    m_en = randint(4, all_en - 1)
+    while len(enemy_group) != m_en:
+        enem_sta = enem_stat[randint(0, len(enem_stat) - 1)]
+        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
+              int(enem_sta[2]), int(enem_sta[3]))
+    while len(enemy_group) != all_en:
     # while len(enemy_group) != 2:
     #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
     # while len(enemy_group) != 4:
     #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy2.png')
-    enem_gen = False
     MYEVENTTYPE = pygame.USEREVENT + 1
     PATHEVENTTYPE = pygame.USEREVENT + 2
     pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
@@ -488,7 +507,6 @@ if __name__ == '__main__':
                     level_size = choice(['small', 'large'])
                     level = load_level(f'{level_size}/level{level_num}.txt')
                     camera = Camera(level_num)
-                    player, level_x, level_y = generate_level(level, player=1)
                     continue
             if event.type == pygame.KEYUP:
                 moves_dict[event.key] = False
@@ -512,7 +530,6 @@ if __name__ == '__main__':
             dx -= step
         if not player.will_collide(walls_group, action):
             screen.fill('black')
-            moved_player, moved_x, moved_y = generate_level(level)
             camera.update(dx, dy)
             ds = camera.return_d()
             for sprite in tiles_group:
