@@ -3,7 +3,7 @@ import pygame
 import sys
 import os
 from random import choice
-from pygame import K_s, K_w, K_a, K_d
+from pygame import K_s, K_w, K_a, K_d, K_SPACE
 from copy import copy, deepcopy
 
 FPS = 50
@@ -174,6 +174,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += step
             return False
 
+    def collides_with_artefact(self):
+        return pygame.sprite.spritecollideany(self, artefacts_group)
+
     def show_stats(self):
         text = [f'Здоровье: {self.health}',
                 f'Жиры: {self.fats}',
@@ -199,8 +202,16 @@ class Player(pygame.sprite.Sprite):
 class Artefact(pygame.sprite.Sprite):
     def __init__(self, artefact_type, pos_x, pos_y):
         super().__init__(artefacts_group, all_sprites)
+        self.pos_x = pos_x
+        self.pos_y = pos_y
         self.image = artefacts_images[artefact_type]
         self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
+
+    def delele_artifact(self):
+        level[self.pos_y][self.pos_x] = '.'
+
+    def activate(self):
+        pass
 
 
 def choose_random_empty_coords(level):
@@ -453,6 +464,12 @@ if __name__ == '__main__':
                     camera = Camera(level_num)
                     player, level_x, level_y = generate_level(level, player=1)
                     continue
+                if event.key == K_SPACE:
+                    received_artefact = player.collides_with_artefact()
+                    if received_artefact:
+                        received_artefact.activate()
+                        artifact_inventory.append(received_artefact)
+                        received_artefact.delele_artifact()
             if event.type == pygame.KEYUP:
                 moves_dict[event.key] = False
             if event.type == MYEVENTTYPE:
@@ -532,7 +549,7 @@ if __name__ == '__main__':
         if player.is_dead():
             player_group.empty()
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                                True, pygame.Color('white'))
+                                               True, pygame.Color('white'))
             rect = string_rendered.get_rect()
             screen.blit(string_rendered, rect)
             artifact_inventory = []
