@@ -410,7 +410,7 @@ if __name__ == '__main__':
     #  ----------
     pygame.display.flip()
     enem_gen = True
-    while len(enemy_group) != 3:
+    while len(enemy_group) != 2:
         Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
     # while len(enemy_group) != 2:
     #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
@@ -491,21 +491,25 @@ if __name__ == '__main__':
                 tx = 0
                 ty = 0
                 for enemy in enemy_group:
-                    enemy.udt()
                     crdy = int(pl_y / 50)
                     crdx = int(pl_x / 50)
                     if enemy.last_y != enemy.pos_y or enemy.last_x != enemy.pos_x:
                         level_path[enemy.last_y][enemy.last_x] = '.'
-                    if po and enemy:
+                        enemy.udt()
+                    else:
+                        enemy.pos_x = enemy.last_x
+                        enemy.pos_y = enemy.last_y
+                    if po:
                         enemy.last(enemy.pos_x, enemy.pos_y)
-                    for i in level_path:
-                        print(i)
+                    else:
+                        level_path[enemy.pos_y][enemy.last_x] = '.'
+                        enemy.pos_x = enemy.last_x
+                        enemy.pos_y = enemy.last_y
                     ch = enemy.path_find(crdy, crdx)
-                    enemy.last(enemy.pos_x, enemy.pos_y)
+                    # enemy.last(enemy.pos_x, enemy.pos_y)
                     if level_path[crdy][crdx][0] == 'E':
                         ch = False
                     if ch:
-                        print(1)
                         comande = enemy.printPath(ch, crdx, crdy)
                         comands = comande[0]
                         po = True

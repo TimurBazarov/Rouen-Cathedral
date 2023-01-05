@@ -1,5 +1,4 @@
-
-
+import time
 from random import randint
 import pygame
 import sys
@@ -216,13 +215,16 @@ def choose_random_empty_coords(level):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y, pix):
+    def __init__(self, pos_x, pos_y, pix, v):
         if level[pos_y][pos_x] != '#':
             if enem_gen:
                 if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
+                    self.end_walk = False
                     self.pix = pix
                     self.pos_x = pos_x
+                    self.v = v
                     self.pos_y = pos_y
+                    self.timer = time.time()
                     self.last_x = pos_x
                     self.last_y = pos_y
                     super().__init__(enemy_group, all_sprites, tiles_group)
@@ -246,7 +248,7 @@ class Enemy(pygame.sprite.Sprite):
         a = find_player(level)
         finPoint = (finPoint1, finPoint2)
         stPoint = (self.pos_y, self.pos_x)
-        self.pathArr = [[-1 if x == '#' or x[0] == 'E' else 0 for x in y] for y in level_path]
+        self.pathArr = [[-1 if x == '#' or x[0] == 'E' else 0 for x in y] for y in level]
         self.pathArr[stPoint[0]][stPoint[1]] = 1
         self.pathArr[finPoint[0]][finPoint[1]] = 0
         if level_path[finPoint[0]][finPoint[1]][0] == 'E':
@@ -299,13 +301,14 @@ class Enemy(pygame.sprite.Sprite):
 
     def walk(self):
         a = self.clock.tick()
-        self.t += self.k * a * 50 / 1000
+        self.t += self.k * a * self.v / 1000
         if self.forw == 'x':
             self.rect.x = self.t + tile_width * self.last_x + camera.dx
         if self.forw == 'y':
             self.rect.y = self.t + tile_height * self.last_y + camera.dy
 
     def udt(self):
+        level_path[enemy.last_y][enemy.last_x] = '.'
         level_path[self.pos_y][self.pos_x] = 'E' + self.pix
         self.rect = self.image.get_rect().move(
             tile_width * self.pos_x + camera.dx, tile_height * self.pos_y + camera.dy)
@@ -408,12 +411,11 @@ if __name__ == '__main__':
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
     comand_list = []
-    po = []
     #  ----------
     pygame.display.flip()
     enem_gen = True
     while len(enemy_group) != 3:
-        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
+        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy4.png', 50)
     # while len(enemy_group) != 2:
     #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
     # while len(enemy_group) != 4:
@@ -435,7 +437,40 @@ if __name__ == '__main__':
     pygame.time.set_timer(PATHEVENTTYPE, 1000)
 
     artifact_inventory = []  # ИНВЕНТАРЬ АРТЕФАКТОВ ОЧЕНЬ ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+    for enemy in enemy_group:
+        crdy = int(pl_y / 50)
+        crdx = int(pl_x / 50)
+        ch = enemy.path_find(crdy, crdx)
+        if ch:
+            enemy.udt()
+        for i in level_path:
+            print(i)
+        enemy.last(enemy.pos_x, enemy.pos_y)
+        if ch:
+            while True:
+                enemy.timer = time.time()
+                enemy.pos_x = enemy.last_x
+                enemy.pos_y = enemy.last_y
+                comande = enemy.printPath(ch, crdx, crdy)
+                comands = comande[randint(0, len(comande) - 1)]
+                enemy.end_walk = False
+                if comands == 'left':
+                    enemy.pos_x -= 1
+                    enemy.start('x', -1)
+                if comands == 'right':
+                    enemy.pos_x += 1
+                    enemy.start('x', 1)
+                if comands == 'down':
+                    enemy.pos_y += 1
+                    enemy.start('y', 1)
+                if comands == 'up':
+                    enemy.pos_y -= 1
+                    enemy.start('y', -1)
+                if level[enemy.pos_y][enemy.pos_x] != '#':
+                    break
+        else:
+            enemy.start('0', 0)
+            enemy.end_walk = True
     while running:
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
@@ -485,48 +520,93 @@ if __name__ == '__main__':
             for sprite in artefacts_group:
                 camera.apply(sprite)
             for obj in enemy_group:
-                print(obj.last_x, obj.last_y)
-                print(obj.pos_x, obj.pos_y)
                 obj.rect.x = tile_width * obj.last_x + camera.dx
                 obj.rect.y = tile_height * obj.last_y + camera.dy
             pl_x += dx
             pl_y += dy
-            if see:
-                tx = 0
-                ty = 0
-                for enemy in enemy_group:
-                    enemy.udt()
+            for enemy in enemy_group:
+                if abs(enemy.t) >= 48:
                     crdy = int(pl_y / 50)
                     crdx = int(pl_x / 50)
+                    ch = enemy.path_find(crdy, crdx)
+                    if ch:
+                        enemy.udt()
                     for i in level_path:
                         print(i)
-                    if po:
-                        level_path[enemy.last_y][enemy.last_x] = '.'
-                    ch = enemy.path_find(crdy, crdx)
                     enemy.last(enemy.pos_x, enemy.pos_y)
                     if ch:
-                        comande = enemy.printPath(ch, crdx, crdy)
-                        comands = comande[0]
-                        po = True
-                        if comands == 'left':
-                            enemy.pos_x -= 1
-                            enemy.start('x', -1)
-                        if comands == 'right':
-                            enemy.pos_x += 1
-                            enemy.start('x', 1)
-                        if comands == 'down':
-                            enemy.pos_y += 1
-                            enemy.start('y', 1)
-                        if comands == 'up':
-                            enemy.pos_y -= 1
-                            enemy.start('y', -1)
+                        while True:
+                            enemy.timer = time.time()
+                            enemy.pos_x = enemy.last_x
+                            enemy.pos_y = enemy.last_y
+                            comande = enemy.printPath(ch, crdx, crdy)
+                            comands = comande[randint(0, len(comande) - 1)]
+                            enemy.end_walk = False
+                            if comands == 'left':
+                                enemy.pos_x -= 1
+                                enemy.start('x', -1)
+                            if comands == 'right':
+                                enemy.pos_x += 1
+                                enemy.start('x', 1)
+                            if comands == 'down':
+                                enemy.pos_y += 1
+                                enemy.start('y', 1)
+                            if comands == 'up':
+                                enemy.pos_y -= 1
+                                enemy.start('y', -1)
+                            if level[enemy.pos_y][enemy.pos_x] != '#':
+                                break
                     else:
-                        po = False
+                        enemy.start('0', 0)
+                        enemy.end_walk = True
+                else:
+                    if time.time() - enemy.timer >= 50 / enemy.v:
+                        crdy = int(pl_y / 50)
+                        crdx = int(pl_x / 50)
+                        ch = enemy.path_find(crdy, crdx)
+                        if ch:
+                            enemy.udt()
+                        for i in level_path:
+                            print(i)
+                        enemy.last(enemy.pos_x, enemy.pos_y)
+                        if ch:
+                            while True:
+                                enemy.timer = time.time()
+                                enemy.pos_x = enemy.last_x
+                                enemy.pos_y = enemy.last_y
+                                comande = enemy.printPath(ch, crdx, crdy)
+                                comands = comande[randint(0, len(comande) - 1)]
+                                enemy.end_walk = False
+                                if comands == 'left':
+                                    enemy.pos_x -= 1
+                                    enemy.start('x', -1)
+                                if comands == 'right':
+                                    enemy.pos_x += 1
+                                    enemy.start('x', 1)
+                                if comands == 'down':
+                                    enemy.pos_y += 1
+                                    enemy.start('y', 1)
+                                if comands == 'up':
+                                    enemy.pos_y -= 1
+                                    enemy.start('y', -1)
+                                if level[enemy.pos_y][enemy.pos_x] != '#':
+                                    break
+                        else:
+                            enemy.start('0', 0)
+                            enemy.end_walk = True
             see = False
             to_move_flag = False
-            if po:
-                for z in enemy_group:
-                    z.walk()
+            for ens in enemy_group:
+                if ens.end_walk:
+                    level_path = deepcopy(level)
+                    ens.start('0', 0)
+                    ens.pos_x = ens.last_x
+                    ens.pos_t = ens.last_y
+                    level_path[ens.pos_y][ens.pos_x] = 'E' + ens.pix
+                    ens.rect = ens.image.get_rect().move(
+                        tile_width * ens.pos_x + camera.dx, tile_height * ens.pos_y + camera.dy)
+            for z in enemy_group:
+                z.walk()
         all_sprites.draw(screen)
         player_group.draw(screen)
         enemy_group.draw(screen)
