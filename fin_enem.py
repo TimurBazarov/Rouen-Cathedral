@@ -415,7 +415,7 @@ if __name__ == '__main__':
     pygame.display.flip()
     enem_gen = True
     while len(enemy_group) != 3:
-        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy4.png', 50)
+        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy3.png', 50)
     # while len(enemy_group) != 2:
     #     Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), 'enemy.png')
     # while len(enemy_group) != 4:
