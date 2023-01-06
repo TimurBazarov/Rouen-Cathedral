@@ -14,7 +14,7 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭']
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚']
 
 player = None
 
@@ -119,7 +119,8 @@ artefacts_images = {
     '鳥': load_image('artefacts/onion.png'),
     '島': load_image('artefacts/eye.png'),
     '語': load_image('artefacts/mushroom.png'),
-    '頭': load_image('artefacts/virus.png')
+    '頭': load_image('artefacts/virus.png'),
+    '魚': load_image('artefacts/heart.png')
 }
 void_images = dict()
 count = 1
@@ -358,6 +359,11 @@ class Virus(Artefact):
         player.fats += 45
 
 
+class Heart(Artefact):
+    def activate(self, player):
+        player.health = player.max_health
+
+
 def choose_random_empty_coords(level):
     empty = []
     for y in range(len(level)):
@@ -552,6 +558,9 @@ def generate_level(level, player=None):
             elif level[y][x] == '頭':
                 Tile('empty', x, y)
                 Virus('頭', x, y)
+            elif level[y][x] == '魚':
+                Tile('empty', x, y)
+                Heart('魚', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
