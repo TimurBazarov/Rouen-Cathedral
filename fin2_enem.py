@@ -289,6 +289,12 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
                 enemm.is_death()
 
+class Enemy_bullet(Bullet):
+    def popal(self):
+        if pygame.sprite.collide_mask(self, player):
+            player.health -= self.dmg
+            self.kill()
+
 
 class Artefact(pygame.sprite.Sprite):
     def __init__(self, artefact_type, pos_x, pos_y):
@@ -437,8 +443,8 @@ class Range_enemy(Enemy):
                 level_path[self.pos_y][self.pos_x] = 'E' + pix
 
     def path_find(self, finPoint1, finPoint2):
-        xx = pl_x - self.rect.x
-        yy = pl_y - self.rect.y
+        xx = abs(pl_x - self.rect.x - 9.5)
+        yy = abs(pl_y - self.rect.y - 16)
         if xx ** 2 + yy ** 2 >= self.range ** 2:
             finPoint = (finPoint1, finPoint2)
             stPoint = (self.pos_y, self.pos_x)
@@ -465,7 +471,25 @@ class Range_enemy(Enemy):
                                 self.pathArr[finPoint[0]][finPoint[1]] = weight
                                 return self.pathArr
             return False
-        return False
+        else:
+            # xx = abs(self.x1 - x2)
+            # yy = abs(self.y1 - y2)
+            if xx == 0:
+                self.a = math.pi / 2
+            else:
+                self.a = math.atan(yy / xx)
+            self.angle = (180 * self.a) / math.pi
+            if xx == 0:
+                self.vx = 0
+            else:
+                self.vx = math.cos(self.a) * self.v * (self.rect.x + 9.5 - pl_x) / xx
+            if yy == 0:
+                self.vy = 0
+            else:
+                self.vy = math.sin(self.a) * self.v * (self.rect.y + 16 - pl_y) / yy
+                Enemy_bullet(self.range, self.vx, self.vy,
+                             self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
+            return False
 
 
 
@@ -742,9 +766,9 @@ if __name__ == '__main__':
                 else:
                     if time.time() - enemy.timer >= 50 / enemy.v:
                         if enemy.pos_x == crdx and enemy.pos_y == crdy:
-                            player.health -= enemy.dmg
-                            enemy.timer = time.time()
-                            # print(player.health)
+                            if enemy.__class__.__name__ == 'Enemy':
+                                player.health -= enemy.dmg
+                                enemy.timer = time.time()
                         crdy = int(pl_y / 50)
                         crdx = int(pl_x / 50)
                         ch = enemy.path_find(crdy, crdx)
