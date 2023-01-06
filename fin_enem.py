@@ -87,6 +87,7 @@ def load_image(name, colorkey=None):
 
 
 tile_images = {
+    'void': load_image('void.png'),
     'empty': load_image('Tile_12.png'),
     'T': load_image('Tile_01.png'),
     '-': load_image('Tile_33.png'),
@@ -122,12 +123,6 @@ artefacts_images = {
     '頭': load_image('artefacts/virus.png'),
     '魚': load_image('artefacts/heart.png')
 }
-void_images = dict()
-count = 1
-for i in range(1, 11):
-    for i1 in range(1, 11):
-        void_images[count] = load_image(f'void{i}{i1}.png')
-        count += 1
 
 tile_width = tile_height = 50
 
@@ -137,7 +132,7 @@ class Tile(pygame.sprite.Sprite):
         if tile_type == 'void':
             super().__init__(tiles_group, walls_group, all_sprites)
             num = randint(1, 100)
-            self.image = void_images[num]
+            self.image = tile_images['void']
         else:
             super().__init__(tiles_group, all_sprites)
             self.image = tile_images[tile_type]
@@ -575,6 +570,11 @@ def find_player(level):
                 return y * 50 + 5, x * 50 + 15
 
 
+def make_void():
+    for _ in range(1000):
+        screen.set_at((randint(0, 649), randint(0, 649)), 'white')
+
+
 class Camera:
     def __init__(self, level_num):
         if level_num == 1:
@@ -696,6 +696,7 @@ if __name__ == '__main__':
                 dx -= step
         if not player.will_collide(walls_group, action) and not is_dead:
             screen.fill('black')
+            make_void()
             moved_player, moved_x, moved_y = generate_level(level)
             camera.update(dx, dy)
             ds = camera.return_d()
@@ -760,5 +761,4 @@ if __name__ == '__main__':
             artifact_inventory = []
             is_dead = True
         player.show_stats()
-
         pygame.display.flip()
