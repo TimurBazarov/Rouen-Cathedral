@@ -14,7 +14,7 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車']
+full_artefacts_list = ['1', '電', '買', '車', '红']
 
 player = None
 
@@ -100,12 +100,16 @@ tile_images = {
     'D': load_image('Tile_34.png'),
     'U': load_image('Tile_56.png')
 }
-player_image = load_image('cherkash1.png')
+player_images = {1: load_image('cherkash1.png'),
+                 2: load_image('cherkash1_right.png'),
+                 3: load_image('cherkash1_left.png'),
+                 4: load_image('cherkash1_up.png')}
 artefacts_images = {
     '1': load_image('artefacts/apple.png'),
     '電': load_image('artefacts/floppa.png'),
     '買': load_image('artefacts/cucumber.png'),
-    '車': load_image('artefacts/edwardshorizon.png')
+    '車': load_image('artefacts/edwardshorizon.png'),
+    '红': load_image('artefacts/kozinaks.png')
 }
 void_images = dict()
 count = 1
@@ -133,7 +137,7 @@ class Tile(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
-        self.image = player_image
+        self.image = player_images[1]
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
@@ -288,6 +292,13 @@ class Cucumber(Artefact):
 class Edwards(Artefact):
     def activate(self, player):
         player.step = ceil(player.step * 0.8)
+
+
+class Kozinaks(Artefact):
+    def activate(self, player):
+        player.step += 1
+        player.ch += 200
+        player.fats += 25
 
 
 def choose_random_empty_coords(level):
@@ -451,6 +462,9 @@ def generate_level(level, player=None):
             elif level[y][x] == '車':
                 Tile('empty', x, y)
                 Edwards('車', x, y)
+            elif level[y][x] == '红':
+                Tile('empty', x, y)
+                Kozinaks('红', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
@@ -566,25 +580,28 @@ if __name__ == '__main__':
                 if event.key == K_f:
                     player.eat_fats()
             if event.type == pygame.KEYUP:
+                player.image = player_images[1]
                 moves_dict[event.key] = False
             if event.type == MYEVENTTYPE:
                 to_move_flag = True
             if event.type == PATHEVENTTYPE:
                 see = True
-        if not to_move_flag:
-            continue
-        if moves_dict[K_s]:
-            action = 'down'
-            dy += step
-        elif moves_dict[K_w]:
-            action = 'up'
-            dy -= step
-        elif moves_dict[K_d]:
-            action = 'right'
-            dx += step
-        elif moves_dict[K_a]:
-            action = 'left'
-            dx -= step
+        if to_move_flag:
+            if moves_dict[K_s]:
+                action = 'down'
+                dy += step
+            elif moves_dict[K_w]:
+                player.image = player_images[4]
+                action = 'up'
+                dy -= step
+            elif moves_dict[K_d]:
+                player.image = player_images[2]
+                action = 'right'
+                dx += step
+            elif moves_dict[K_a]:
+                player.image = player_images[3]
+                action = 'left'
+                dx -= step
         if not player.will_collide(walls_group, action) and not is_dead:
             screen.fill('black')
             moved_player, moved_x, moved_y = generate_level(level)
