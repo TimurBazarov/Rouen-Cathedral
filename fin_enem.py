@@ -212,7 +212,9 @@ class Player(pygame.sprite.Sprite):
         self.check_health_is_max()
 
     def collides_with_artefact(self):
-        return pygame.sprite.spritecollideany(self, artefacts_group)
+        for sprite in artefacts_group:
+            if pygame.sprite.collide_mask(self, sprite):
+                return sprite
 
     def show_stats(self):
         global additional_lifes
@@ -258,6 +260,7 @@ class Artefact(pygame.sprite.Sprite):
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.image = artefacts_images[artefact_type]
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
 
     def delete_artifact(self):
