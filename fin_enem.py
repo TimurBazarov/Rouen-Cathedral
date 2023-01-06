@@ -14,7 +14,7 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車', '红']
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬']
 
 player = None
 
@@ -109,7 +109,10 @@ artefacts_images = {
     '電': load_image('artefacts/floppa.png'),
     '買': load_image('artefacts/cucumber.png'),
     '車': load_image('artefacts/edwardshorizon.png'),
-    '红': load_image('artefacts/kozinaks.png')
+    '红': load_image('artefacts/kozinaks.png'),
+    '無': load_image('artefacts/gluegun.png'),
+    '東': load_image('artefacts/ibanez2550.png'),
+    '馬': load_image('artefacts/krotovuha.png')
 }
 void_images = dict()
 count = 1
@@ -254,18 +257,11 @@ class Artefact(pygame.sprite.Sprite):
     def activate(self, player):
         pass
 
-    def realise_text(self, player):
-        pass
-
 
 class Apple(Artefact):
     def activate(self, player):
         player.increase_health(-15)
         player.ch += 50
-
-    def realise_text(self, player):
-        string_rendered = font_stats.render(f'Вы подобрали артефакт Яблоко', True, pygame.Color('white'))
-        screen.blit(string_rendered, (10, 10))
 
 
 class Floppa(Artefact):
@@ -273,20 +269,11 @@ class Floppa(Artefact):
         global additional_lifes
         additional_lifes += 1
 
-    def realise_text(self, player):
-        string_rendered = font_stats.render(f'Вы подобрали артефакт Шлёпа', True, pygame.Color('white'))
-        screen.blit(string_rendered, (10, 10))
-
 
 class Cucumber(Artefact):
     def activate(self, player):
         player.max_health += 10
         player.step += 1
-
-    def realise_text(self, player):
-        string_rendered = font_stats.render(f'Вы подобрали артефакт Новогодний Огурец',
-                                            True, pygame.Color('white'))
-        screen.blit(string_rendered, (10, 10))
 
 
 class Edwards(Artefact):
@@ -299,6 +286,25 @@ class Kozinaks(Artefact):
         player.step += 1
         player.ch += 200
         player.fats += 25
+
+
+class Gluegun(Artefact):
+    def activate(self, player):
+        player.ch += 100
+        player.fats += 50
+
+
+class Ibanez(Artefact):
+    def activate(self, player):
+        player.ch += 150
+        player.step += 2
+        player.increase_health(-10)
+
+
+class Krotovuha(Artefact):
+    def activate(self, player):
+        player.fats += 40
+        player.step = ceil(1.2 * player.step)
 
 
 def choose_random_empty_coords(level):
@@ -465,6 +471,15 @@ def generate_level(level, player=None):
             elif level[y][x] == '红':
                 Tile('empty', x, y)
                 Kozinaks('红', x, y)
+            elif level[y][x] == '無':
+                Tile('empty', x, y)
+                Gluegun('無', x, y)
+            elif level[y][x] == '東':
+                Tile('empty', x, y)
+                Ibanez('東', x, y)
+            elif level[y][x] == '馬':
+                Tile('empty', x, y)
+                Krotovuha('馬', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
@@ -574,7 +589,6 @@ if __name__ == '__main__':
                     received_artefact = player.collides_with_artefact()
                     if received_artefact:
                         received_artefact.activate(player)
-                        received_artefact.realise_text(player)
                         artifact_inventory.append(received_artefact)
                         received_artefact.delete_artifact()
                 if event.key == K_f:
