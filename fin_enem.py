@@ -14,7 +14,8 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚']
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
+                       '長', '紙', '書', '見']
 
 player = None
 
@@ -121,7 +122,12 @@ artefacts_images = {
     '島': load_image('artefacts/eye.png'),
     '語': load_image('artefacts/mushroom.png'),
     '頭': load_image('artefacts/virus.png'),
-    '魚': load_image('artefacts/heart.png')
+    '魚': load_image('artefacts/heart.png'),
+    '園': load_image('artefacts/liver.png'),
+    '長': load_image('artefacts/lunch.png'),
+    '紙': load_image('artefacts/dessert.png'),
+    '書': load_image('artefacts/spoon.png'),
+    '見': load_image('artefacts/dollar.png')
 }
 
 tile_width = tile_height = 50
@@ -359,6 +365,36 @@ class Heart(Artefact):
         player.health = player.max_health
 
 
+class Liver(Artefact):
+    def activate(self, player):
+        player.health = player.max_health
+        player.ch += 120
+
+
+class Lunch(Artefact):
+    def activate(self, player):
+        player.ch += 200
+        player.fats += 100
+
+
+class Dessert(Artefact):
+    def activate(self, player):
+        global additional_lifes
+        player.ch += 100
+        player.fats += 25
+        additional_lifes += 1
+
+
+class Spoon(Artefact):
+    def activate(self, player):
+        player.speed += round(0.3 * player.speed)
+
+
+class Dollar(Artefact):
+    def activate(self, player):
+        player.luck += 2
+
+
 def choose_random_empty_coords(level):
     empty = []
     for y in range(len(level)):
@@ -556,6 +592,21 @@ def generate_level(level, player=None):
             elif level[y][x] == '魚':
                 Tile('empty', x, y)
                 Heart('魚', x, y)
+            elif level[y][x] == '園':
+                Tile('empty', x, y)
+                Liver('園', x, y)
+            elif level[y][x] == '長':
+                Tile('empty', x, y)
+                Lunch('長', x, y)
+            elif level[y][x] == '紙':
+                Tile('empty', x, y)
+                Dessert('紙', x, y)
+            elif level[y][x] == '書':
+                Tile('empty', x, y)
+                Spoon('書', x, y)
+            elif level[y][x] == '見':
+                Tile('empty', x, y)
+                Dollar('見', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
