@@ -244,6 +244,7 @@ class Weapon:
             self.vy = 0
         else:
             self.vy = math.sin(self.a) * self.v * (y2 - self.y1) / abs(self.y1 - y2)
+        player.ch -= 1
         return Bullet(self.max_range, self.vx, self.vy, self.pix_bul, self.angle, self.x1, self.y1, self.dmg)
 
 
