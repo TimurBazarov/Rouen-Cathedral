@@ -14,7 +14,7 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時']
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭']
 
 player = None
 
@@ -116,6 +116,10 @@ artefacts_images = {
     '風': load_image('artefacts/lays.png'),
     '愛': load_image('artefacts/metalzone.png'),
     '時': load_image('artefacts/oneboob.png'),
+    '鳥': load_image('artefacts/onion.png'),
+    '島': load_image('artefacts/eye.png'),
+    '語': load_image('artefacts/mushroom.png'),
+    '頭': load_image('artefacts/virus.png')
 }
 void_images = dict()
 count = 1
@@ -329,6 +333,31 @@ class Oneboob(Artefact):
         player.increase_health(-10)
 
 
+class Onion(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.max_health += 10
+
+
+class Eye(Artefact):
+    def activate(self, player):
+        player.luck += 1
+        player.increase_health(30)
+
+
+class Mushroom(Artefact):
+    def activate(self, player):
+        global additional_lifes
+        additional_lifes += 1
+        player.ch += 50
+
+
+class Virus(Artefact):
+    def activate(self, player):
+        player.step += round(0.2 * player.step)
+        player.fats += 45
+
+
 def choose_random_empty_coords(level):
     empty = []
     for y in range(len(level)):
@@ -511,6 +540,18 @@ def generate_level(level, player=None):
             elif level[y][x] == '時':
                 Tile('empty', x, y)
                 Oneboob('時', x, y)
+            elif level[y][x] == '鳥':
+                Tile('empty', x, y)
+                Onion('鳥', x, y)
+            elif level[y][x] == '島':
+                Tile('empty', x, y)
+                Eye('島', x, y)
+            elif level[y][x] == '語':
+                Tile('empty', x, y)
+                Mushroom('語', x, y)
+            elif level[y][x] == '頭':
+                Tile('empty', x, y)
+                Virus('頭', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
