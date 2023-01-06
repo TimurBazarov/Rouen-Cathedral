@@ -14,7 +14,7 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
-full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬']
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時']
 
 player = None
 
@@ -112,7 +112,10 @@ artefacts_images = {
     '红': load_image('artefacts/kozinaks.png'),
     '無': load_image('artefacts/gluegun.png'),
     '東': load_image('artefacts/ibanez2550.png'),
-    '馬': load_image('artefacts/krotovuha.png')
+    '馬': load_image('artefacts/krotovuha.png'),
+    '風': load_image('artefacts/lays.png'),
+    '愛': load_image('artefacts/metalzone.png'),
+    '時': load_image('artefacts/oneboob.png'),
 }
 void_images = dict()
 count = 1
@@ -298,13 +301,32 @@ class Ibanez(Artefact):
     def activate(self, player):
         player.ch += 150
         player.step += 2
-        player.increase_health(-10)
+        player.increase_health(10)
 
 
 class Krotovuha(Artefact):
     def activate(self, player):
         player.fats += 40
         player.step = ceil(1.2 * player.step)
+
+
+class Lays(Artefact):
+    def activate(self, player):
+        player.fats += 60
+
+
+class MetalZone(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.max_health += 50
+
+
+class Oneboob(Artefact):
+    def activate(self, player):
+        player.ch += 200
+        player.fats += 15
+        player.luck += 1
+        player.increase_health(-10)
 
 
 def choose_random_empty_coords(level):
@@ -480,6 +502,15 @@ def generate_level(level, player=None):
             elif level[y][x] == '馬':
                 Tile('empty', x, y)
                 Krotovuha('馬', x, y)
+            elif level[y][x] == '風':
+                Tile('empty', x, y)
+                Lays('風', x, y)
+            elif level[y][x] == '愛':
+                Tile('empty', x, y)
+                MetalZone('愛', x, y)
+            elif level[y][x] == '時':
+                Tile('empty', x, y)
+                Oneboob('時', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
@@ -527,11 +558,8 @@ if __name__ == '__main__':
     level = load_level(f'{level_size}/level{level_num}.txt')
     level_path = deepcopy(level)
     camera = Camera(level_num)
-    choose_random_empty_coords(level)
-    choose_random_empty_coords(level)
-    choose_random_empty_coords(level)
-    choose_random_empty_coords(level)
-    choose_random_empty_coords(level)
+    for i in range(5):
+        choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
