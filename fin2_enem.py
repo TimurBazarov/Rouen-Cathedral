@@ -10,16 +10,15 @@ import csv
 import time
 import math
 
-
 FPS = 50
 pygame.init()
-size = WIDTH, HEIGHT = 550, 550
+size = WIDTH, HEIGHT = 1280, 768
 font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
-                       '長', '紙', '書', '見', '響', '假', '佛', '德']
+                       '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤']
 push = False
 reload = True
 
@@ -146,7 +145,14 @@ artefacts_images = {
     '響': load_image('artefacts/potatoes.png'),
     '假': load_image('artefacts/potatonator.png'),
     '佛': load_image('artefacts/redbull.png'),
-    '德': load_image('artefacts/poop.png')
+    '德': load_image('artefacts/poop.png'),
+    '冰': load_image('artefacts/steven.png'),
+    '拜': load_image('artefacts/belt.png'),
+    '黑': load_image('artefacts/bandage.png'),
+    '兔': load_image('artefacts/growth.png'),
+    '妒': load_image('artefacts/christ.png'),
+    '每': load_image('artefacts/halo.png'),
+    '壤': load_image('artefacts/polyphemus.png')
 }
 
 tile_width = tile_height = 50
@@ -193,28 +199,32 @@ class Player(pygame.sprite.Sprite):
             return
         if action == 'up':
             self.rect.y -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.y += step
                 return True
             self.rect.y += step
             return False
         elif action == 'down':
             self.rect.y += step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.y -= step
                 return True
             self.rect.y -= step
             return False
         elif action == 'right':
             self.rect.x += step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.x -= step
                 return True
             self.rect.x -= step
             return False
         elif action == 'left':
             self.rect.x -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.x += step
                 return True
             self.rect.x += step
@@ -243,8 +253,9 @@ class Player(pygame.sprite.Sprite):
                 f'Удача: {self.luck}',
                 f'Скорость: {self.step}',
                 f'Оружие: {self.gun}',
-                f'Дополнительные жизни: {additional_lifes}']
-        text_coord = 350
+                f'Дополнительные жизни: {additional_lifes}',
+                f'Урон: {self.gun.dmg}']
+        text_coord = 340
         for line in text:
             string_rendered = font_stats.render(line, True, pygame.Color('white'))
             rect = string_rendered.get_rect()
@@ -285,6 +296,7 @@ class Weapon:
         self.dmg = dmg
         self.t = 0
         self.clock = 0
+        self.ch_cost = 2
 
     def show(self):
         ima = load_image(self.pix)
@@ -306,8 +318,11 @@ class Weapon:
             self.vy = 0
         else:
             self.vy = math.sin(self.a) * self.v * (y2 - self.y1) / abs(self.y1 - y2)
-        player.ch -= 1
+        player.ch -= self.ch_cost
         return Bullet(self.max_range, self.vx, self.vy, self.pix_bul, self.angle, self.x1, self.y1, self.dmg)
+
+    def __str__(self):
+        return self.name
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -322,13 +337,13 @@ class Bullet(pygame.sprite.Sprite):
         self.yd = 0
         self.vy = vy
         self.dmg = dmg
-        if x2 > x0 and y2 > y0:
+        if x2 >= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
-        if x2 > x0 and y2 < y0:
+        if x2 >= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle - 90)
-        if x2 < x0 and y2 > y0:
+        if x2 <= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
-        if x2 < x0 and y2 < y0:
+        if x2 <= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
         self.rect = self.image.get_rect().move(x0, y0)
         self.dx = x0
@@ -356,6 +371,7 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
                 enemm.is_death()
 
+
 class Enemy_bullet(Bullet):
     def __init__(self, max, vx, vy, pix, angle, x0, y0, dmg):
         super().__init__(max, vx, vy, pix, angle, x0, y0, dmg)
@@ -368,7 +384,6 @@ class Enemy_bullet(Bullet):
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
         if plx <= x0 and ply <= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
-
 
     def popal(self):
         if pygame.sprite.collide_mask(self, player):
@@ -413,6 +428,8 @@ class Cucumber(Artefact):
 class Edwards(Artefact):
     def activate(self, player):
         player.step = ceil(player.step * 0.8)
+        player.gun.dmg = ceil(player.gun.dmg * 0.8)
+        player.gun.fire_rate = player.gun.fire_rate * 0.6
 
 
 class Kozinaks(Artefact):
@@ -424,6 +441,7 @@ class Kozinaks(Artefact):
 
 class Gluegun(Artefact):
     def activate(self, player):
+        player.gun.dmg += 5
         player.ch += 100
         player.fats += 50
 
@@ -431,7 +449,11 @@ class Gluegun(Artefact):
 class Ibanez(Artefact):
     def activate(self, player):
         player.ch += 150
-        player.step += 2
+        player.fats += 25
+        player.gun.dmg += 15
+        player.gun.fire_rate = player.gun.fire_rate * 0.9
+        player.step = player.step // 2
+        player.gun.ch_cost -= 0.5
         player.increase_health(10)
 
 
@@ -465,6 +487,8 @@ class Onion(Artefact):
     def activate(self, player):
         player.step += 2
         player.max_health += 10
+        player.gun.fire_rate = player.gun.fire_rate * 0.7
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
 
 
 class Eye(Artefact):
@@ -521,7 +545,7 @@ class Redbull(Artefact):
     def activate(self, player):
         player.max_health += player.fats // 2
         player.fats = 0
-        player.ch += 300
+        player.ch += 500
         player.increase_health(-20)
 
 
@@ -559,6 +583,59 @@ class Spoon(Artefact):
 class Dollar(Artefact):
     def activate(self, player):
         player.luck += 2
+
+
+class Belt(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.fats += 5
+        player.ch += 35
+
+
+class Bandage(Artefact):
+    def activate(self, player):
+        player.max_health += 50
+        player.increase_health(75)
+
+
+class Steven(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 10
+
+
+class Growth(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 10
+        player.step += 1
+        player.max_health += 20
+        player.fats += 30
+
+
+class Christ(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 20
+        player.gun.fire_rate = player.gun.fire_rate * 0.8
+        player.increase_health(-30)
+        player.max_health -= 20
+
+
+class Halo(Artefact):
+    def activate(self, player):
+        player.max_health += 30
+        player.step += 1
+        player.gun.fire_rate = player.gun.fire_rate * 0.8
+        player.gun.dmg += 10
+        player.gun.max_range += 200
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+
+
+class Polyphemus(Artefact):
+    def activate(self, player):
+        player.max_health += 50
+        player.fats += 20
+        player.step = ceil(player.step * 0.5)
+        player.gun.dmg *= 3
+        player.gun.fire_rate *= 2
 
 
 def choose_random_empty_coords(level, is_poop=False):
@@ -754,7 +831,7 @@ class Range_enemy(Enemy):
                 else:
                     self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y - 16) / yy
                 Enemy_bullet(self.range, self.vx, self.vy,
-                                self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
+                             self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
                 self.timm = time.time()
             return False
 
@@ -876,10 +953,28 @@ def generate_level(level, player=None):
             elif level[y][x] == '德':
                 Tile('empty', x, y)
                 Poop('德', x, y)
+            elif level[y][x] == '冰':
+                Tile('empty', x, y)
+                Steven('冰', x, y)
+            elif level[y][x] == '拜':
+                Tile('empty', x, y)
+                Belt('拜', x, y)
+            elif level[y][x] == '黑':
+                Tile('empty', x, y)
+                Bandage('黑', x, y)
+            elif level[y][x] == '兔':
+                Tile('empty', x, y)
+                Growth('兔', x, y)
+            elif level[y][x] == '妒':
+                Tile('empty', x, y)
+                Christ('妒', x, y)
+            elif level[y][x] == '每':
+                Tile('empty', x, y)
+                Halo('每', x, y)
+            elif level[y][x] == '壤':
+                Tile('empty', x, y)
+                Polyphemus('壤', x, y)
 
-            # if level_path[y][x][0] == 'E':
-            #     a = level_path[y][x]
-            #     Enemy(x, y, a[1:])
     return new_player, x, y
 
 
@@ -933,8 +1028,7 @@ if __name__ == '__main__':
     x1 += 19
     y1 += 16
     camera = Camera(level_num)
-    for i in range(30):
-        choose_random_empty_coords(level)
+    choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
@@ -944,20 +1038,22 @@ if __name__ == '__main__':
     all_en = randint(5, 8)
     m_en = randint(4, all_en - 1)
     while len(enemy_group) != m_en:
-        enem_sta = enem_stat[randint(0, len(enem_stat) - 1)]
+        enem_sta = enem_stat[randint(0, len(enem_stat) - 2)]
         Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
               int(enem_sta[2]), int(enem_sta[3]))
     while len(enemy_group) != all_en:
-        enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
+        enem_sta = renem_stat[randint(0, len(renem_stat) - 2)]
         Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
-              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
+                    int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6],
+                    int(enem_sta[7]))
     MYEVENTTYPE = pygame.USEREVENT + 1
     pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
     wea_list = []
-    pist = Weapon('pistol', 'gun.jpg', 'piu.png', 900, 1, 500, x1, y1, 25)
+    pist = Weapon('pistol', 'gun.jpg', 'piu.png', 150, 1, 500, x1, y1, 25)
     wea_list.append(pist)
+    player.gun = pist
     k = 0
     image_m = load_image("cur.png")
     step = 5
@@ -968,7 +1064,7 @@ if __name__ == '__main__':
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)  # FPS
 
-    artifact_inventory = []  # ИНВЕНТАРЬ АРТЕФАКТОВ ОЧЕНЬ ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    artifact_inventory = []
     for enemy in enemy_group:
         crdy = int(pl_y / 50)
         crdx = int(pl_x / 50)
@@ -1004,10 +1100,13 @@ if __name__ == '__main__':
         else:
             enemy.start('0', 0)
             enemy.end_walk = True
+    cycle_level_num = 0
     while running:
         step = player.step
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
+        else:
+            level_cleared = False
         action = None
         dx, dy = 0, 0
         for event in pygame.event.get():
@@ -1017,13 +1116,34 @@ if __name__ == '__main__':
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
                 moves_dict[event.key] = True
-                if event.key == pygame.K_e and level_cleared:
-                    level_num = choice(range(1, 6))
-                    level_size = choice(['small', 'large'])
+                if event.key == pygame.K_e:  # and level_cleared
+                    chance = False
+                    cycle_level_num = (cycle_level_num + 1) % 5
+                    if cycle_level_num in (0, 1, 2):
+                        level_num = choice(range(1, 6))
+                        level_size = 'large'
+                        level_with_artefact = False
+                        level_with_boss = False
+                        chance = choice([True, False])
+                    elif cycle_level_num == 3:
+                        level_num = choice(range(1, 6))
+                        level_size = 'small'
+                        level_with_artefact = True
+                    elif cycle_level_num == 4:
+                        level_num = choice(range(1, 6))
+                        level_size = 'large'
+                        level_with_artefact = False
+                        level_with_boss = True
                     level = load_level(f'{level_size}/level{level_num}.txt')
                     level_path = deepcopy(level)
                     camera = Camera(level_num)
-                    player, level_x, level_y = generate_level(level, player=1)
+                    if chance or level_with_artefact:
+                        choose_random_empty_coords(level)
+                    weapon = player.gun
+
+                    player1, level_x, level_y = generate_level(level, player=1)
+                    player1 = player
+                    player.gun = weapon
                     player.rect.x = find_player(level)[1]
                     player.rect.y = find_player(level)[0]
                     y1, x1 = find_player(level)
@@ -1036,15 +1156,27 @@ if __name__ == '__main__':
                     enemy_group.empty()
                     all_en = randint(5, 8)
                     m_en = randint(4, all_en - 1)
-                    while len(enemy_group) != m_en:
-                        enem_sta = enem_stat[randint(0, len(enem_stat) - 1)]
-                        Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
-                              int(enem_sta[2]), int(enem_sta[3]))
-                    while len(enemy_group) != all_en:
-                        enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
-                        Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
-                                    int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]),
-                                    int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
+                    if not (level_with_artefact or level_with_boss):
+                        while len(enemy_group) != m_en:
+                            enem_sta = enem_stat[randint(0, len(enem_stat) - 2)]
+                            Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
+                                  int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]))
+                        while len(enemy_group) != all_en:
+                            enem_sta = renem_stat[randint(0, len(renem_stat) - 2)]
+                            Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
+                                        int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]),
+                                        int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
+                    elif level_with_boss:
+                        chance_boss = choice([1, 2])
+                        if chance_boss == 1:
+                            enem_sta = enem_stat[2]
+                            Enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
+                                  int(enem_sta[2]), int(enem_sta[3]))
+                        elif chance_boss == 2:
+                            enem_sta = renem_stat[2]
+                            Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
+                                        int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]),
+                                        int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
                     continue
                 if event.key == K_SPACE:
                     received_artefact = player.collides_with_artefact()
@@ -1209,18 +1341,17 @@ if __name__ == '__main__':
         player_group.draw(screen)
         enemy_group.draw(screen)
         if x2 > 0 and x2 < 550:
-            if y2 > 0 and y2 < 550:
+            if 0 < y2 < 550:
                 pygame.mouse.set_visible(False)
                 screen.blit(image_m, (x2 - 25, y2 - 25))
         if player.is_dead():
             player_group.empty()
             camera = None
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                                True, pygame.Color('white'))
+                                               True, pygame.Color('white'))
             rect = string_rendered.get_rect()
             screen.blit(string_rendered, rect)
             artifact_inventory = []
             is_dead = True
         player.show_stats()
-
         pygame.display.flip()
