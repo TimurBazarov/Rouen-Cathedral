@@ -825,11 +825,11 @@ class Range_enemy(Enemy):
                 if xx == 0:
                     self.vx = 0
                 else:
-                    self.vx = math.cos(self.a) * self.b_speed * (plx - self.rect.x - 9.5) / xx
+                    self.vx = math.cos(self.a) * self.b_speed * (plx - self.rect.x) / xx
                 if yy == 0:
                     self.vy = 0
                 else:
-                    self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y - 16) / yy
+                    self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y) / yy
                 Enemy_bullet(self.range, self.vx, self.vy,
                              self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
                 self.timm = time.time()
