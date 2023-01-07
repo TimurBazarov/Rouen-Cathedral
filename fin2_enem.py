@@ -482,11 +482,11 @@ class Range_enemy(Enemy):
             if xx == 0:
                 self.vx = 0
             else:
-                self.vx = math.cos(self.a) * self.v * (self.rect.x + 9.5 - pl_x) / xx
+                self.vx = math.cos(self.a) * self.v * (pl_x - self.rect.x - 9.5) / xx
             if yy == 0:
                 self.vy = 0
             else:
-                self.vy = math.sin(self.a) * self.v * (self.rect.y + 16 - pl_y) / yy
+                self.vy = math.sin(self.a) * self.v * (pl_y - self.rect.y - 16) / yy
                 Enemy_bullet(self.range, self.vx, self.vy,
                              self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
             return False
