@@ -15,7 +15,7 @@ font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
-                       '長', '紙', '書', '見', '響', '假', '佛', '德', '拜']
+                       '長', '紙', '書', '見', '響', '假', '佛', '德', '拜', '黑']
 
 player = None
 
@@ -133,7 +133,8 @@ artefacts_images = {
     '假': load_image('artefacts/potatonator.png'),
     '佛': load_image('artefacts/redbull.png'),
     '德': load_image('artefacts/poop.png'),
-    '拜': load_image('artefacts/belt.png')
+    '拜': load_image('artefacts/belt.png'),
+    '黑': load_image('artefacts/bandage.png')
 }
 
 tile_width = tile_height = 50
@@ -454,6 +455,12 @@ class Belt(Artefact):
         player.ch += 35
 
 
+class Bandage(Artefact):
+    def activate(self, player):
+        player.max_health += 50
+        player.increase_health(75)
+
+
 def choose_random_empty_coords(level, is_poop=False):
     empty = []
     for y in range(len(level)):
@@ -687,6 +694,9 @@ def generate_level(level, player=None):
             elif level[y][x] == '拜':
                 Tile('empty', x, y)
                 Belt('拜', x, y)
+            elif level[y][x] == '黑':
+                Tile('empty', x, y)
+                Bandage('黑', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
