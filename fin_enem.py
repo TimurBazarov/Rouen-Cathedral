@@ -15,7 +15,7 @@ font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
-                       '長', '紙', '書', '見', '響', '假', '佛', '德']
+                       '長', '紙', '書', '見', '響', '假', '佛', '德', '拜']
 
 player = None
 
@@ -132,7 +132,8 @@ artefacts_images = {
     '響': load_image('artefacts/potatoes.png'),
     '假': load_image('artefacts/potatonator.png'),
     '佛': load_image('artefacts/redbull.png'),
-    '德': load_image('artefacts/poop.png')
+    '德': load_image('artefacts/poop.png'),
+    '拜': load_image('artefacts/belt.png')
 }
 
 tile_width = tile_height = 50
@@ -427,6 +428,7 @@ class Poop(Artefact):
         player.step = ceil(0.6 * player.step)
         choose_random_empty_coords(level, is_poop=True)
 
+
 class Dessert(Artefact):
     def activate(self, player):
         global additional_lifes
@@ -443,6 +445,13 @@ class Spoon(Artefact):
 class Dollar(Artefact):
     def activate(self, player):
         player.luck += 2
+
+
+class Belt(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.fats += 5
+        player.ch += 35
 
 
 def choose_random_empty_coords(level, is_poop=False):
@@ -675,6 +684,9 @@ def generate_level(level, player=None):
             elif level[y][x] == '德':
                 Tile('empty', x, y)
                 Poop('德', x, y)
+            elif level[y][x] == '拜':
+                Tile('empty', x, y)
+                Belt('拜', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
