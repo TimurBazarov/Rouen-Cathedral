@@ -7,6 +7,7 @@ from random import choice
 from pygame import K_s, K_w, K_a, K_d
 from copy import deepcopy
 import csv
+import math
 
 
 FPS = 50
@@ -16,11 +17,14 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
+push = False
+reload = True
 
 player = None
 
 all_sprites = pygame.sprite.Group()
 walls_group = pygame.sprite.Group()
+b_group = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
@@ -150,6 +154,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = 5
         self.luck = 0  # Можно повысить или понизить артефактами
         self.gun = None
+        self.mask = pygame.mask.from_surface(self.image)
 
     def will_collide(self, walls_group, action):
         if action is None:
@@ -205,6 +210,109 @@ class Player(pygame.sprite.Sprite):
         return True
 
 
+class Weapon:
+    def __init__(self, name, pix, pix_bul, max_range, fire_rate, v, x1, y1, dmg):
+        self.name = name
+        self.pix_bul = pix_bul
+        self.max_range = max_range
+        self.fire_rate = fire_rate
+        self.pix = pix
+        self.v = v
+        self.x1 = x1
+        self.y1 = y1
+        self.dmg = dmg
+        self.t = 0
+        self.clock = 0
+
+    def show(self):
+        ima = load_image(self.pix)
+        screen.blit(ima, (0, 500))
+
+    def piu(self):
+        xx = abs(self.x1 - x2)
+        yy = abs(self.y1 - y2)
+        if xx == 0:
+            self.a = math.pi / 2
+        else:
+            self.a = math.atan(yy / xx)
+        self.angle = (180 * self.a) / math.pi
+        if abs(self.x1 - x2) == 0:
+            self.vx = 0
+        else:
+            self.vx = math.cos(self.a) * self.v * (x2 - self.x1) / abs(self.x1 - x2)
+        if abs(self.y1 - y2) == 0:
+            self.vy = 0
+        else:
+            self.vy = math.sin(self.a) * self.v * (y2 - self.y1) / abs(self.y1 - y2)
+        player.ch -= 1
+        return Bullet(self.max_range, self.vx, self.vy, self.pix_bul, self.angle, self.x1, self.y1, self.dmg)
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, max, vx, vy, pix, angle, x0, y0, dmg):
+        super().__init__(b_group, all_sprites)
+        self.clock = pygame.time.Clock()
+        self.max = max
+        self.x0 = x0
+        self.y0 = y0
+        self.vx = vx
+        self.xd = 0
+        self.yd = 0
+        self.vy = vy
+        self.dmg = dmg
+        if x2 > x0 and y2 > y0:
+            self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
+        if x2 > x0 and y2 < y0:
+            self.image = pygame.transform.rotate(load_image(pix), angle - 90)
+        if x2 < x0 and y2 > y0:
+            self.image = pygame.transform.rotate(load_image(pix), angle + 90)
+        if x2 < x0 and y2 < y0:
+            self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
+        self.rect = self.image.get_rect().move(x0, y0)
+        self.dx = x0
+        self.dy = y0
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def fly(self):
+        t = self.clock.tick() / 1000
+        self.dx += self.vx * t
+        self.dy += self.vy * t
+        ddx = abs(self.rect.x - self.x0)
+        ddy = abs(self.rect.y - self.y0)
+        if ddx ** 2 + ddy ** 2 >= self.max ** 2:
+            self.kill()
+        self.xd += dx
+        self.yd += dy
+        self.rect.x = self.dx - self.xd
+        self.rect.y = self.dy - self.yd
+
+    def popal(self):
+        for enemm in enemy_group:
+            if pygame.sprite.collide_mask(self, enemm):
+                enemm.hp -= self.dmg
+                self.kill()
+                enemm.is_death()
+
+class Enemy_bullet(Bullet):
+    def __init__(self, max, vx, vy, pix, angle, x0, y0, dmg):
+        super().__init__(max, vx, vy, pix, angle, x0, y0, dmg)
+        ply, plx = find_player(level)
+        if plx > x0 and ply > y0:
+            self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
+        if plx > x0 and ply < y0:
+            self.image = pygame.transform.rotate(load_image(pix), angle - 90)
+        if plx < x0 and ply > y0:
+            self.image = pygame.transform.rotate(load_image(pix), angle + 90)
+        if plx < x0 and ply < y0:
+            self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
+
+
+    def popal(self):
+        if pygame.sprite.collide_mask(self, player):
+            player.health -= self.dmg
+            self.kill()
+
+
 class Artefact(pygame.sprite.Sprite):
     def __init__(self, artefact_type, pos_x, pos_y):
         super().__init__(artefacts_group, all_sprites)
@@ -244,6 +352,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect = self.image.get_rect().move(
                     tile_width * self.pos_x, tile_height * self.pos_y)
                 level_path[self.pos_y][self.pos_x] = 'E' + pix
+                self.mask = pygame.mask.from_surface(self.image)
 
     def path_find(self, finPoint1, finPoint2):
         a = find_player(level)
@@ -318,8 +427,13 @@ class Enemy(pygame.sprite.Sprite):
         self.last_x = x
         self.last_y = y
 
+    def is_death(self):
+        if self.hp <= 0:
+            self.kill()
+
+
 class Range_enemy(Enemy):
-    def __init__(self, pos_x, pos_y, pix, v, hp, dmg, range, b_speed, b_pix):
+    def __init__(self, pos_x, pos_y, pix, v, hp, dmg, range, b_speed, b_pix, fire_rate):
         if level[pos_y][pos_x] != '#':
             if level_path[pos_y][pos_x][0] != 'E' and level[pos_y][pos_x] != '@':
                 super().__init__(pos_x, pos_y, pix, v, hp, dmg)
@@ -336,14 +450,68 @@ class Range_enemy(Enemy):
                 self.k = 0
                 self.t = 0
                 self.v = v
+                self.timm = time.time()
                 self.pos_y = pos_y
                 self.timer = time.time()
                 self.last_x = pos_x
                 self.last_y = pos_y
+                self.fire_rate = fire_rate
                 self.image = load_image(pix)
                 self.rect = self.image.get_rect().move(
                     tile_width * self.pos_x, tile_height * self.pos_y)
                 level_path[self.pos_y][self.pos_x] = 'E' + pix
+
+    def path_find(self, finPoint1, finPoint2):
+        ply, plx = find_player(level)
+        xx = abs(plx - self.rect.x - 9.5)
+        yy = abs(ply - self.rect.y - 16)
+        if xx ** 2 + yy ** 2 >= self.range ** 2:
+            finPoint = (finPoint1, finPoint2)
+            stPoint = (self.pos_y, self.pos_x)
+            self.pathArr = [[-1 if x == '#' or x[0] == 'E' else 0 for x in y] for y in level]
+            self.pathArr[stPoint[0]][stPoint[1]] = 1
+            self.pathArr[finPoint[0]][finPoint[1]] = 0
+            if level_path[finPoint[0]][finPoint[1]][0] == 'E':
+                return False
+            weight = 1
+            for i in range(400):
+                weight += 1
+                for y in range(len(level)):
+                    for x in range(len(level)):
+                        if self.pathArr[y][x] == (weight - 1):
+                            if y >= 0 and self.pathArr[y - 1][x] == 0:
+                                self.pathArr[y - 1][x] = weight
+                            if y < len(level) and self.pathArr[y + 1][x] == 0:
+                                self.pathArr[y + 1][x] = weight
+                            if x >= 0 and self.pathArr[y][x - 1] == 0:
+                                self.pathArr[y][x - 1] = weight
+                            if x < len(level) and self.pathArr[y][x + 1] == 0:
+                                self.pathArr[y][x + 1] = weight
+                            if (abs(y - finPoint[0]) + abs(x - finPoint[1])) == 1:
+                                self.pathArr[finPoint[0]][finPoint[1]] = weight
+                                return self.pathArr
+            return False
+        else:
+            if time.time() - self.timm >= self.fire_rate:
+                # xx = abs(self.x1 - x2)
+                # yy = abs(self.y1 - y2)
+                if xx == 0:
+                    self.a = math.pi / 2
+                else:
+                    self.a = math.atan(yy / xx)
+                self.angle = (180 * self.a) / math.pi
+                if xx == 0:
+                    self.vx = 0
+                else:
+                    self.vx = math.cos(self.a) * self.b_speed * (plx - self.rect.x - 9.5) / xx
+                if yy == 0:
+                    self.vy = 0
+                else:
+                    self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y - 16) / yy
+                Enemy_bullet(self.range, self.vx, self.vy,
+                                self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
+                self.timm = time.time()
+            return False
 
 
 
@@ -351,7 +519,7 @@ def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
     tiles_group.empty()
-    # enemy_group.empty()
+    b_group.empty()
     artefacts_group.empty()
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -389,9 +557,6 @@ def generate_level(level, player=None):
                 Tile('D', x, y)
             elif level[y][x] == 'U':
                 Tile('U', x, y)
-            # if level_path[y][x][0] == 'E':
-            #     a = level_path[y][x]
-            #     Enemy(x, y, a[1:])
     return new_player, x, y
 
 
@@ -434,6 +599,11 @@ if __name__ == '__main__':
     level_size = choice(['small', 'large'])
     level = load_level(f'{level_size}/level{level_num}.txt')
     level_path = deepcopy(level)
+    x2 = -100
+    y2 = -100
+    y1, x1 = find_player(level)
+    x1 += 19
+    y1 += 16
     camera = Camera(level_num)
     choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
@@ -451,31 +621,33 @@ if __name__ == '__main__':
     while len(enemy_group) != all_en:
         enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
         Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
-              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6])
+              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
     MYEVENTTYPE = pygame.USEREVENT + 1
-    PATHEVENTTYPE = pygame.USEREVENT + 2
     pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
+    wea_list = []
+    pist = Weapon('pistol', 'gun.jpg', 'piu.png', 900, 1, 500, x1, y1, 25)
+    wea_list.append(pist)
+    k = 0
+    image_m = load_image("cur.png")
     step = 5
     moves_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
     to_move_flag = False
-    see = False
-    ssav = False
-    level_cleared = True
+    level_cleared = False
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)  # FPS
-    pygame.time.set_timer(PATHEVENTTYPE, 1000)
 
     artifact_inventory = []  # ИНВЕНТАРЬ АРТЕФАКТОВ ОЧЕНЬ ВАЖНО!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     for enemy in enemy_group:
         crdy = int(pl_y / 50)
         crdx = int(pl_x / 50)
         ch = enemy.path_find(crdy, crdx)
+        if enemy.pos_x == crdx and enemy.pos_y == crdy:
+            player.health -= enemy.dmg
+            print(player.health)
         if ch:
             enemy.udt()
-        for i in level_path:
-            print(i)
         enemy.last(enemy.pos_x, enemy.pos_y)
         if ch:
             while True:
@@ -521,6 +693,13 @@ if __name__ == '__main__':
                     level_path = deepcopy(level)
                     camera = Camera(level_num)
                     player, level_x, level_y = generate_level(level, player=1)
+                    y1, x1 = find_player(level)
+                    x1 += 19
+                    y1 += 16
+                    pl_y, pl_x = find_player(level)
+                    for i in wea_list:
+                        i.x1 = x1
+                        i.y1 = y1
                     enemy_group.empty()
                     all_en = randint(5, 8)
                     m_en = randint(4, all_en - 1)
@@ -531,15 +710,21 @@ if __name__ == '__main__':
                     while len(enemy_group) != all_en:
                         enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
                         Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0],
-                                    int(enem_sta[1]),
-                                    int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6])
+                                    int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]),
+                                    int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
                     continue
             if event.type == pygame.KEYUP:
                 moves_dict[event.key] = False
             if event.type == MYEVENTTYPE:
                 to_move_flag = True
-            if event.type == PATHEVENTTYPE:
-                see = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    push = True
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    push = False
+            if event.type == pygame.MOUSEMOTION:
+                x2, y2 = event.pos
         if not to_move_flag:
             continue
         if moves_dict[K_s]:
@@ -562,6 +747,8 @@ if __name__ == '__main__':
                 camera.apply(sprite)
             for sprite in artefacts_group:
                 camera.apply(sprite)
+            # for sprite in b_group:
+            #     camera.apply(sprite)
             for obj in enemy_group:
                 obj.rect.x = tile_width * obj.last_x + camera.dx
                 obj.rect.y = tile_height * obj.last_y + camera.dy
@@ -574,8 +761,6 @@ if __name__ == '__main__':
                     ch = enemy.path_find(crdy, crdx)
                     if ch:
                         enemy.udt()
-                    for i in level_path:
-                        print(i)
                     enemy.last(enemy.pos_x, enemy.pos_y)
                     if ch:
                         while True:
@@ -604,13 +789,15 @@ if __name__ == '__main__':
                         enemy.end_walk = True
                 else:
                     if time.time() - enemy.timer >= 50 / enemy.v:
+                        if enemy.pos_x == crdx and enemy.pos_y == crdy:
+                            if enemy.__class__.__name__ == 'Enemy':
+                                player.health -= enemy.dmg
+                                enemy.timer = time.time()
                         crdy = int(pl_y / 50)
                         crdx = int(pl_x / 50)
                         ch = enemy.path_find(crdy, crdx)
                         if ch:
                             enemy.udt()
-                        for i in level_path:
-                            print(i)
                         enemy.last(enemy.pos_x, enemy.pos_y)
                         if ch:
                             while True:
@@ -650,10 +837,27 @@ if __name__ == '__main__':
                         tile_width * ens.pos_x + camera.dx, tile_height * ens.pos_y + camera.dy)
             for z in enemy_group:
                 z.walk()
+        if push and reload:
+            wea_list[k].piu()
+            reload = False
+            wea_list[k].clock = pygame.time.Clock()
+            wea_list[k].t = 0
+        if not reload:
+            wea_list[k].t += wea_list[k].clock.tick() / 1000
+            if wea_list[k].t >= wea_list[k].fire_rate:
+                reload = True
+        if b_group:
+            for i in b_group:
+                i.fly()
+                i.popal()
+        b_group.draw(screen)
         all_sprites.draw(screen)
         player_group.draw(screen)
         enemy_group.draw(screen)
-
+        if x2 > 0 and x2 < 550:
+            if y2 > 0 and y2 < 550:
+                pygame.mouse.set_visible(False)
+                screen.blit(image_m, (x2 - 25, y2 - 25))
         if player.is_dead():
             player_group.empty()
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
