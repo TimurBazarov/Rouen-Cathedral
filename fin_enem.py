@@ -15,7 +15,7 @@ font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
-                       '長', '紙', '書', '見']
+                       '長', '紙', '書', '見', '響', '假', '佛', '德']
 
 player = None
 
@@ -100,7 +100,8 @@ tile_images = {
     'J': load_image('Tile_23.png'),
     't': load_image('Tile_11.png'),
     'D': load_image('Tile_34.png'),
-    'U': load_image('Tile_56.png')
+    'U': load_image('Tile_56.png'),
+    'p': load_image('poop_tile.png')
 }
 player_images = {1: load_image('cherkash1.png'),
                  2: load_image('cherkash1_right.png'),
@@ -127,7 +128,11 @@ artefacts_images = {
     '長': load_image('artefacts/lunch.png'),
     '紙': load_image('artefacts/dessert.png'),
     '書': load_image('artefacts/spoon.png'),
-    '見': load_image('artefacts/dollar.png')
+    '見': load_image('artefacts/dollar.png'),
+    '響': load_image('artefacts/potatoes.png'),
+    '假': load_image('artefacts/potatonator.png'),
+    '佛': load_image('artefacts/redbull.png'),
+    '德': load_image('artefacts/poop.png')
 }
 
 tile_width = tile_height = 50
@@ -137,8 +142,10 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         if tile_type == 'void':
             super().__init__(tiles_group, walls_group, all_sprites)
-            num = randint(1, 100)
             self.image = tile_images['void']
+        elif tile_type == 'p':
+            super().__init__(tiles_group, walls_group, all_sprites)
+            self.image = tile_images['p']
         else:
             super().__init__(tiles_group, all_sprites)
             self.image = tile_images[tile_type]
@@ -317,6 +324,7 @@ class Krotovuha(Artefact):
     def activate(self, player):
         player.fats += 40
         player.step = ceil(1.2 * player.step)
+        player.health = player.max_health
 
 
 class Lays(Artefact):
@@ -380,6 +388,45 @@ class Lunch(Artefact):
         player.fats += 100
 
 
+class Potatoes(Artefact):
+    def activate(self, player):
+        player.ch += 100
+        player.fats += 20
+
+
+class Potatonator(Artefact):
+    def activate(self, player):
+        player.ch += 150
+        player.fats += 30
+        player.step += 1
+        player.increase_health(20)
+
+
+class Redbull(Artefact):
+    def activate(self, player):
+        player.max_health += player.fats // 2
+        player.fats = 0
+        player.ch += 300
+        player.increase_health(-20)
+
+
+class Esp(Artefact):
+    def activate(self, player):
+        player.max_health += 10
+        player.increase_health(10)
+        player.fats += 10
+        player.ch += 10
+        player.step += 1
+
+
+class Poop(Artefact):
+    def activate(self, player):
+        player.increase_health(20)
+        player.fats += 5
+        player.ch += 30
+        player.step = ceil(0.6 * player.step)
+        choose_random_empty_coords(level, is_poop=True)
+
 class Dessert(Artefact):
     def activate(self, player):
         global additional_lifes
@@ -398,14 +445,17 @@ class Dollar(Artefact):
         player.luck += 2
 
 
-def choose_random_empty_coords(level):
+def choose_random_empty_coords(level, is_poop=False):
     empty = []
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
                 empty.append((y, x))
     y, x = choice(empty)
-    level[y][x] = choice(full_artefacts_list)
+    if is_poop:
+        level[y][x] = 'p'
+    else:
+        level[y][x] = choice(full_artefacts_list)
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -550,6 +600,9 @@ def generate_level(level, player=None):
                 Tile('D', x, y)
             elif level[y][x] == 'U':
                 Tile('U', x, y)
+            elif level[y][x] == 'p':
+                Tile('empty', x, y)
+                Tile('p', x, y)
             elif level[y][x] == '電':
                 Tile('empty', x, y)
                 Floppa('電', x, y)
@@ -610,6 +663,18 @@ def generate_level(level, player=None):
             elif level[y][x] == '見':
                 Tile('empty', x, y)
                 Dollar('見', x, y)
+            elif level[y][x] == '響':
+                Tile('empty', x, y)
+                Potatoes('響', x, y)
+            elif level[y][x] == '假':
+                Tile('empty', x, y)
+                Potatonator('假', x, y)
+            elif level[y][x] == '佛':
+                Tile('empty', x, y)
+                Redbull('佛', x, y)
+            elif level[y][x] == '德':
+                Tile('empty', x, y)
+                Poop('德', x, y)
 
             # if level_path[y][x][0] == 'E':
             #     a = level_path[y][x]
@@ -662,7 +727,7 @@ if __name__ == '__main__':
     level = load_level(f'{level_size}/level{level_num}.txt')
     level_path = deepcopy(level)
     camera = Camera(level_num)
-    for i in range(5):
+    for i in range(30):
         choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     pl_y, pl_x = find_player(level)
