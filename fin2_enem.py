@@ -359,13 +359,13 @@ class Enemy_bullet(Bullet):
     def __init__(self, max, vx, vy, pix, angle, x0, y0, dmg):
         super().__init__(max, vx, vy, pix, angle, x0, y0, dmg)
         ply, plx = find_player(level)
-        if plx > x0 and ply > y0:
+        if plx >= x0 and ply >= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
-        if plx > x0 and ply < y0:
+        if plx >= x0 and ply <= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle - 90)
-        if plx < x0 and ply > y0:
+        if plx <= x0 and ply >= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
-        if plx < x0 and ply < y0:
+        if plx <= x0 and ply <= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
 
 
@@ -1049,6 +1049,13 @@ if __name__ == '__main__':
                         received_artefact.activate(player)
                         artifact_inventory.append(received_artefact)
                         received_artefact.delete_artifact()
+                        generate_level(level, player=1)
+                        for tl in tiles_group:
+                            tl.rect.x += camera.dx
+                            tl.rect.y += camera.dy
+                        for tl in artefacts_group:
+                            tl.rect.x += camera.dx
+                            tl.rect.y += camera.dy
                 if event.key == K_f:
                     player.eat_fats()
             if event.type == pygame.KEYUP:
@@ -1084,7 +1091,7 @@ if __name__ == '__main__':
         if not player.will_collide(walls_group, action) and not is_dead:
             screen.fill('black')
             make_void()
-            moved_player, moved_x, moved_y = generate_level(level)
+            # moved_player, moved_x, moved_y = generate_level(level)
             camera.update(dx, dy)
             ds = camera.return_d()
             for sprite in tiles_group:
