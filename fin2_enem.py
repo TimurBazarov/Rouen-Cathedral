@@ -1023,6 +1023,8 @@ if __name__ == '__main__':
                     level_path = deepcopy(level)
                     camera = Camera(level_num)
                     player, level_x, level_y = generate_level(level, player=1)
+                    player.rect.x = find_player(level)[1]
+                    player.rect.y = find_player(level)[0]
                     y1, x1 = find_player(level)
                     x1 += 19
                     y1 += 16
