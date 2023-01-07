@@ -10,6 +10,7 @@ import csv
 import time
 import math
 
+
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 550, 550
@@ -192,32 +193,28 @@ class Player(pygame.sprite.Sprite):
             return
         if action == 'up':
             self.rect.y -= step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
+            if pygame.sprite.spritecollideany(self, walls_group):
                 self.rect.y += step
                 return True
             self.rect.y += step
             return False
         elif action == 'down':
             self.rect.y += step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
+            if pygame.sprite.spritecollideany(self, walls_group):
                 self.rect.y -= step
                 return True
             self.rect.y -= step
             return False
         elif action == 'right':
             self.rect.x += step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
+            if pygame.sprite.spritecollideany(self, walls_group):
                 self.rect.x -= step
                 return True
             self.rect.x -= step
             return False
         elif action == 'left':
             self.rect.x -= step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
+            if pygame.sprite.spritecollideany(self, walls_group):
                 self.rect.x += step
                 return True
             self.rect.x += step
@@ -325,13 +322,13 @@ class Bullet(pygame.sprite.Sprite):
         self.yd = 0
         self.vy = vy
         self.dmg = dmg
-        if x2 >= x0 and y2 >= y0:
+        if x2 > x0 and y2 > y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
-        if x2 >= x0 and y2 <= y0:
+        if x2 > x0 and y2 < y0:
             self.image = pygame.transform.rotate(load_image(pix), angle - 90)
-        if x2 <= x0 and y2 >= y0:
+        if x2 < x0 and y2 > y0:
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
-        if x2 <= x0 and y2 <= y0:
+        if x2 < x0 and y2 < y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
         self.rect = self.image.get_rect().move(x0, y0)
         self.dx = x0
@@ -756,7 +753,7 @@ class Range_enemy(Enemy):
                 else:
                     self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y - 16) / yy
                 Enemy_bullet(self.range, self.vx, self.vy,
-                             self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
+                                self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
                 self.timm = time.time()
             return False
 
@@ -941,7 +938,6 @@ if __name__ == '__main__':
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
     comand_list = []
-    po = []
     #  ----------
     pygame.display.flip()
     all_en = randint(5, 8)
@@ -953,11 +949,9 @@ if __name__ == '__main__':
     while len(enemy_group) != all_en:
         enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
         Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
-                    int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6],
-                    int(enem_sta[7]))
+              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
     MYEVENTTYPE = pygame.USEREVENT + 1
-    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE,
-                              pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
+    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
     wea_list = []
@@ -1070,22 +1064,23 @@ if __name__ == '__main__':
                     push = False
             if event.type == pygame.MOUSEMOTION:
                 x2, y2 = event.pos
-        if to_move_flag:
-            if moves_dict[K_s]:
-                action = 'down'
-                dy += step
-            elif moves_dict[K_w]:
-                player.image = player_images[4]
-                action = 'up'
-                dy -= step
-            elif moves_dict[K_d]:
-                player.image = player_images[2]
-                action = 'right'
-                dx += step
-            elif moves_dict[K_a]:
-                player.image = player_images[3]
-                action = 'left'
-                dx -= step
+        if not to_move_flag:
+            continue
+        if moves_dict[K_s]:
+            action = 'down'
+            dy += step
+        elif moves_dict[K_w]:
+            player.image = player_images[4]
+            action = 'up'
+            dy -= step
+        elif moves_dict[K_d]:
+            player.image = player_images[2]
+            action = 'right'
+            dx += step
+        elif moves_dict[K_a]:
+            player.image = player_images[3]
+            action = 'left'
+            dx -= step
         if not player.will_collide(walls_group, action) and not is_dead:
             screen.fill('black')
             make_void()
@@ -1211,7 +1206,7 @@ if __name__ == '__main__':
             player_group.empty()
             camera = None
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                               True, pygame.Color('white'))
+                                                True, pygame.Color('white'))
             rect = string_rendered.get_rect()
             screen.blit(string_rendered, rect)
             artifact_inventory = []
