@@ -260,13 +260,13 @@ class Bullet(pygame.sprite.Sprite):
         self.yd = 0
         self.vy = vy
         self.dmg = dmg
-        if x2 > x0 and y2 > y0:
+        if x2 >= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
-        if x2 > x0 and y2 < y0:
+        if x2 >= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle - 90)
-        if x2 < x0 and y2 > y0:
+        if x2 <= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
-        if x2 < x0 and y2 < y0:
+        if x2 <= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
         self.rect = self.image.get_rect().move(x0, y0)
         self.dx = x0
