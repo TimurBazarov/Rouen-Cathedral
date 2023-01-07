@@ -343,8 +343,9 @@ class Bullet(pygame.sprite.Sprite):
         ddy = abs(self.rect.y - self.y0)
         if ddx ** 2 + ddy ** 2 >= self.max ** 2:
             self.kill()
-        self.xd += dx
-        self.yd += dy
+        if not player.will_collide(walls_group, action):
+            self.xd += dx
+            self.yd += dy
         self.rect.x = self.dx - self.xd
         self.rect.y = self.dy - self.yd
 
