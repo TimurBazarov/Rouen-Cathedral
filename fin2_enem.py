@@ -1,14 +1,14 @@
-import time
 from random import randint
 import pygame
 import sys
 import os
 from random import choice
-from pygame import K_s, K_w, K_a, K_d
-from copy import deepcopy
+from pygame import K_s, K_w, K_a, K_d, K_SPACE, K_f
+from copy import copy, deepcopy
+from math import ceil
 import csv
+import time
 import math
-
 
 FPS = 50
 pygame.init()
@@ -17,6 +17,8 @@ font = pygame.font.Font(None, 30)
 font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
+full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
+                       '長', '紙', '書', '見', '響', '假', '佛', '德']
 push = False
 reload = True
 
@@ -35,6 +37,7 @@ with open('enemys.csv') as csvfile:
 with open('renemys.csv') as csvfile:
     reader = csv.reader(csvfile, delimiter=';')
     renem_stat = [i for i in list(reader)[1:]]
+additional_lifes = 0
 
 
 def terminate():
@@ -98,6 +101,7 @@ def load_image(name, colorkey=None):
 
 
 tile_images = {
+    'void': load_image('void.png'),
     'empty': load_image('Tile_12.png'),
     'T': load_image('Tile_01.png'),
     '-': load_image('Tile_33.png'),
@@ -109,18 +113,40 @@ tile_images = {
     'J': load_image('Tile_23.png'),
     't': load_image('Tile_11.png'),
     'D': load_image('Tile_34.png'),
-    'U': load_image('Tile_56.png')
+    'U': load_image('Tile_56.png'),
+    'p': load_image('poop_tile.png')
 }
-player_image = load_image('mario.png')
+player_images = {1: load_image('cherkash1.png'),
+                 2: load_image('cherkash1_right.png'),
+                 3: load_image('cherkash1_left.png'),
+                 4: load_image('cherkash1_up.png')}
 artefacts_images = {
-    '1': load_image('artefact1.png')
+    '1': load_image('artefacts/apple.png'),
+    '電': load_image('artefacts/floppa.png'),
+    '買': load_image('artefacts/cucumber.png'),
+    '車': load_image('artefacts/edwardshorizon.png'),
+    '红': load_image('artefacts/kozinaks.png'),
+    '無': load_image('artefacts/gluegun.png'),
+    '東': load_image('artefacts/ibanez2550.png'),
+    '馬': load_image('artefacts/krotovuha.png'),
+    '風': load_image('artefacts/lays.png'),
+    '愛': load_image('artefacts/metalzone.png'),
+    '時': load_image('artefacts/oneboob.png'),
+    '鳥': load_image('artefacts/onion.png'),
+    '島': load_image('artefacts/eye.png'),
+    '語': load_image('artefacts/mushroom.png'),
+    '頭': load_image('artefacts/virus.png'),
+    '魚': load_image('artefacts/heart.png'),
+    '園': load_image('artefacts/liver.png'),
+    '長': load_image('artefacts/lunch.png'),
+    '紙': load_image('artefacts/dessert.png'),
+    '書': load_image('artefacts/spoon.png'),
+    '見': load_image('artefacts/dollar.png'),
+    '響': load_image('artefacts/potatoes.png'),
+    '假': load_image('artefacts/potatonator.png'),
+    '佛': load_image('artefacts/redbull.png'),
+    '德': load_image('artefacts/poop.png')
 }
-void_images = dict()
-count = 1
-for i in range(1, 11):
-    for i1 in range(1, 11):
-        void_images[count] = load_image(f'void{i}{i1}.png')
-        count += 1
 
 tile_width = tile_height = 50
 
@@ -129,8 +155,10 @@ class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         if tile_type == 'void':
             super().__init__(tiles_group, walls_group, all_sprites)
-            num = randint(1, 100)
-            self.image = void_images[num]
+            self.image = tile_images['void']
+        elif tile_type == 'p':
+            super().__init__(tiles_group, walls_group, all_sprites)
+            self.image = tile_images['p']
         else:
             super().__init__(tiles_group, all_sprites)
             self.image = tile_images[tile_type]
@@ -141,18 +169,21 @@ class Tile(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
-        self.image = player_image
+        self.image = player_images[1]
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
         #  от углеводов (ch) зависит сколько выстрелов может сделать игрок
         #  Жиры () - ресурс. при неполном здоровье можно восстановить хп, буквально съев свой жир
         #  ЖУ (Жиры Углеводы) можно получить за подбираемые предметы или за убийство врагов
+        self.max_health = 100
         self.health = 100
         self.fats = 20
         self.ch = 100  # carbohydrates
         # Статы
         self.speed = 5
         self.luck = 0  # Можно повысить или понизить артефактами
+        self.step = 5
         self.gun = None
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -161,53 +192,87 @@ class Player(pygame.sprite.Sprite):
             return
         if action == 'up':
             self.rect.y -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.y += step
                 return True
             self.rect.y += step
             return False
         elif action == 'down':
             self.rect.y += step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.y -= step
                 return True
             self.rect.y -= step
             return False
         elif action == 'right':
             self.rect.x += step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.x -= step
                 return True
             self.rect.x -= step
             return False
         elif action == 'left':
             self.rect.x -= step
-            if pygame.sprite.spritecollideany(self, walls_group):
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
                 self.rect.x += step
                 return True
             self.rect.x += step
             return False
 
+    def check_health_is_max(self):
+        if self.health > self.max_health:
+            self.ch += self.health - self.max_health
+            self.health = self.max_health
+
+    def increase_health(self, value):
+        self.health += value
+        self.check_health_is_max()
+
+    def collides_with_artefact(self):
+        for sprite in artefacts_group:
+            if pygame.sprite.collide_mask(self, sprite):
+                return sprite
+
     def show_stats(self):
-        text = [f'Здоровье: {self.health}',
+        global additional_lifes
+        text = [f'Здоровье: {self.health if self.health > 0 else 0}',
+                f'Макс. здоровье: {self.max_health}',
                 f'Жиры: {self.fats}',
                 f'Углеводы: {self.ch}',
                 f'Удача: {self.luck}',
-                f'Оружие: {self.gun}']
+                f'Скорость: {self.step}',
+                f'Оружие: {self.gun}',
+                f'Дополнительные жизни: {additional_lifes}']
         text_coord = 350
         for line in text:
             string_rendered = font_stats.render(line, True, pygame.Color('white'))
-            intro_rect = string_rendered.get_rect()
+            rect = string_rendered.get_rect()
             text_coord += 10
-            intro_rect.top = text_coord
-            intro_rect.x = 10
-            text_coord += intro_rect.height
-            screen.blit(string_rendered, intro_rect)
+            rect.top = text_coord
+            rect.x = 10
+            text_coord += rect.height
+            screen.blit(string_rendered, rect)
 
     def is_dead(self):
+        global additional_lifes
         if self.health > 0:
             return False
+        if additional_lifes > 0:
+            self.health = 100
+            self.ch = self.ch // 2
+            self.fats = self.fats // 2
+            additional_lifes -= 1
+            return False
         return True
+
+    def eat_fats(self):
+        value = min(self.max_health - self.health, self.fats)
+        self.health += value
+        self.fats -= value
 
 
 class Weapon:
@@ -260,13 +325,13 @@ class Bullet(pygame.sprite.Sprite):
         self.yd = 0
         self.vy = vy
         self.dmg = dmg
-        if x2 > x0 and y2 > y0:
+        if x2 >= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle - 90)
-        if x2 > x0 and y2 < y0:
+        if x2 >= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle - 90)
-        if x2 < x0 and y2 > y0:
+        if x2 <= x0 and y2 >= y0:
             self.image = pygame.transform.rotate(load_image(pix), angle + 90)
-        if x2 < x0 and y2 < y0:
+        if x2 <= x0 and y2 <= y0:
             self.image = pygame.transform.rotate(load_image(pix), -angle + 90)
         self.rect = self.image.get_rect().move(x0, y0)
         self.dx = x0
@@ -316,18 +381,200 @@ class Enemy_bullet(Bullet):
 class Artefact(pygame.sprite.Sprite):
     def __init__(self, artefact_type, pos_x, pos_y):
         super().__init__(artefacts_group, all_sprites)
+        self.pos_x = pos_x
+        self.pos_y = pos_y
         self.image = artefacts_images[artefact_type]
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 15)
 
+    def delete_artifact(self):
+        level[self.pos_y][self.pos_x] = '.'
 
-def choose_random_empty_coords(level):
+    def activate(self, player):
+        pass
+
+
+class Apple(Artefact):
+    def activate(self, player):
+        player.increase_health(-15)
+        player.ch += 50
+
+
+class Floppa(Artefact):
+    def activate(self, player):
+        global additional_lifes
+        additional_lifes += 1
+
+
+class Cucumber(Artefact):
+    def activate(self, player):
+        player.max_health += 10
+        player.step += 1
+
+
+class Edwards(Artefact):
+    def activate(self, player):
+        player.step = ceil(player.step * 0.8)
+
+
+class Kozinaks(Artefact):
+    def activate(self, player):
+        player.step += 1
+        player.ch += 200
+        player.fats += 25
+
+
+class Gluegun(Artefact):
+    def activate(self, player):
+        player.ch += 100
+        player.fats += 50
+
+
+class Ibanez(Artefact):
+    def activate(self, player):
+        player.ch += 150
+        player.step += 2
+        player.increase_health(10)
+
+
+class Krotovuha(Artefact):
+    def activate(self, player):
+        player.fats += 40
+        player.step = ceil(1.2 * player.step)
+        player.health = player.max_health
+
+
+class Lays(Artefact):
+    def activate(self, player):
+        player.fats += 60
+
+
+class MetalZone(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.max_health += 50
+
+
+class Oneboob(Artefact):
+    def activate(self, player):
+        player.ch += 200
+        player.fats += 15
+        player.luck += 1
+        player.increase_health(-10)
+
+
+class Onion(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.max_health += 10
+
+
+class Eye(Artefact):
+    def activate(self, player):
+        player.luck += 1
+        player.increase_health(30)
+
+
+class Mushroom(Artefact):
+    def activate(self, player):
+        global additional_lifes
+        additional_lifes += 1
+        player.ch += 50
+
+
+class Virus(Artefact):
+    def activate(self, player):
+        player.step += round(0.2 * player.step)
+        player.fats += 45
+
+
+class Heart(Artefact):
+    def activate(self, player):
+        player.health = player.max_health
+
+
+class Liver(Artefact):
+    def activate(self, player):
+        player.health = player.max_health
+        player.ch += 120
+
+
+class Lunch(Artefact):
+    def activate(self, player):
+        player.ch += 200
+        player.fats += 100
+
+
+class Potatoes(Artefact):
+    def activate(self, player):
+        player.ch += 100
+        player.fats += 20
+
+
+class Potatonator(Artefact):
+    def activate(self, player):
+        player.ch += 150
+        player.fats += 30
+        player.step += 1
+        player.increase_health(20)
+
+
+class Redbull(Artefact):
+    def activate(self, player):
+        player.max_health += player.fats // 2
+        player.fats = 0
+        player.ch += 300
+        player.increase_health(-20)
+
+
+class Esp(Artefact):
+    def activate(self, player):
+        player.max_health += 10
+        player.increase_health(10)
+        player.fats += 10
+        player.ch += 10
+        player.step += 1
+
+
+class Poop(Artefact):
+    def activate(self, player):
+        player.increase_health(20)
+        player.fats += 5
+        player.ch += 30
+        player.step = ceil(0.6 * player.step)
+        choose_random_empty_coords(level, is_poop=True)
+
+
+class Dessert(Artefact):
+    def activate(self, player):
+        global additional_lifes
+        player.ch += 100
+        player.fats += 25
+        additional_lifes += 1
+
+
+class Spoon(Artefact):
+    def activate(self, player):
+        player.speed += round(0.3 * player.speed)
+
+
+class Dollar(Artefact):
+    def activate(self, player):
+        player.luck += 2
+
+
+def choose_random_empty_coords(level, is_poop=False):
     empty = []
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
                 empty.append((y, x))
     y, x = choice(empty)
-    level[y][x] = '1'
+    if is_poop:
+        level[y][x] = 'p'
+    else:
+        level[y][x] = choice(full_artefacts_list)
+
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, pix, v, hp, dmg):
@@ -509,10 +756,9 @@ class Range_enemy(Enemy):
                 else:
                     self.vy = math.sin(self.a) * self.b_speed * (ply - self.rect.y - 16) / yy
                 Enemy_bullet(self.range, self.vx, self.vy,
-                                self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
+                             self.b_pix, self.angle, self.rect.x, self.rect.y, self.dmg)
                 self.timm = time.time()
             return False
-
 
 
 def generate_level(level, player=None):
@@ -530,7 +776,7 @@ def generate_level(level, player=None):
                 Tile('void', x, y)
             elif level[y][x] == '1':
                 Tile('empty', x, y)
-                Artefact('1', x, y)
+                Apple('1', x, y)
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 if player is not None:
@@ -557,6 +803,85 @@ def generate_level(level, player=None):
                 Tile('D', x, y)
             elif level[y][x] == 'U':
                 Tile('U', x, y)
+            elif level[y][x] == 'p':
+                Tile('empty', x, y)
+                Tile('p', x, y)
+            elif level[y][x] == '電':
+                Tile('empty', x, y)
+                Floppa('電', x, y)
+            elif level[y][x] == '買':
+                Tile('empty', x, y)
+                Cucumber('買', x, y)
+            elif level[y][x] == '車':
+                Tile('empty', x, y)
+                Edwards('車', x, y)
+            elif level[y][x] == '红':
+                Tile('empty', x, y)
+                Kozinaks('红', x, y)
+            elif level[y][x] == '無':
+                Tile('empty', x, y)
+                Gluegun('無', x, y)
+            elif level[y][x] == '東':
+                Tile('empty', x, y)
+                Ibanez('東', x, y)
+            elif level[y][x] == '馬':
+                Tile('empty', x, y)
+                Krotovuha('馬', x, y)
+            elif level[y][x] == '風':
+                Tile('empty', x, y)
+                Lays('風', x, y)
+            elif level[y][x] == '愛':
+                Tile('empty', x, y)
+                MetalZone('愛', x, y)
+            elif level[y][x] == '時':
+                Tile('empty', x, y)
+                Oneboob('時', x, y)
+            elif level[y][x] == '鳥':
+                Tile('empty', x, y)
+                Onion('鳥', x, y)
+            elif level[y][x] == '島':
+                Tile('empty', x, y)
+                Eye('島', x, y)
+            elif level[y][x] == '語':
+                Tile('empty', x, y)
+                Mushroom('語', x, y)
+            elif level[y][x] == '頭':
+                Tile('empty', x, y)
+                Virus('頭', x, y)
+            elif level[y][x] == '魚':
+                Tile('empty', x, y)
+                Heart('魚', x, y)
+            elif level[y][x] == '園':
+                Tile('empty', x, y)
+                Liver('園', x, y)
+            elif level[y][x] == '長':
+                Tile('empty', x, y)
+                Lunch('長', x, y)
+            elif level[y][x] == '紙':
+                Tile('empty', x, y)
+                Dessert('紙', x, y)
+            elif level[y][x] == '書':
+                Tile('empty', x, y)
+                Spoon('書', x, y)
+            elif level[y][x] == '見':
+                Tile('empty', x, y)
+                Dollar('見', x, y)
+            elif level[y][x] == '響':
+                Tile('empty', x, y)
+                Potatoes('響', x, y)
+            elif level[y][x] == '假':
+                Tile('empty', x, y)
+                Potatonator('假', x, y)
+            elif level[y][x] == '佛':
+                Tile('empty', x, y)
+                Redbull('佛', x, y)
+            elif level[y][x] == '德':
+                Tile('empty', x, y)
+                Poop('德', x, y)
+
+            # if level_path[y][x][0] == 'E':
+            #     a = level_path[y][x]
+            #     Enemy(x, y, a[1:])
     return new_player, x, y
 
 
@@ -565,6 +890,11 @@ def find_player(level):
         for x in range(len(level[y])):
             if level[y][x] == '@':
                 return y * 50 + 5, x * 50 + 15
+
+
+def make_void():
+    for _ in range(1000):
+        screen.set_at((randint(0, 649), randint(0, 649)), 'white')
 
 
 class Camera:
@@ -605,11 +935,13 @@ if __name__ == '__main__':
     x1 += 19
     y1 += 16
     camera = Camera(level_num)
-    choose_random_empty_coords(level)
+    for i in range(30):
+        choose_random_empty_coords(level)
     player, level_x, level_y = generate_level(level, player=1)
     pl_y, pl_x = find_player(level)
     all_sprites.draw(screen)
     comand_list = []
+    po = []
     #  ----------
     pygame.display.flip()
     all_en = randint(5, 8)
@@ -621,9 +953,11 @@ if __name__ == '__main__':
     while len(enemy_group) != all_en:
         enem_sta = renem_stat[randint(0, len(enem_stat) - 1)]
         Range_enemy(randint(1, len(level) - 1), randint(1, len(level) - 1), enem_sta[0], int(enem_sta[1]),
-              int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
+                    int(enem_sta[2]), int(enem_sta[3]), int(enem_sta[4]), int(enem_sta[5]), enem_sta[6],
+                    int(enem_sta[7]))
     MYEVENTTYPE = pygame.USEREVENT + 1
-    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE])
+    pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN, pygame.KEYUP, MYEVENTTYPE,
+                              pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION])
     to_move_up, to_move_down, to_move_right, to_move_left = False, False, False, False
     running = True
     wea_list = []
@@ -635,6 +969,7 @@ if __name__ == '__main__':
     moves_dict = {K_s: to_move_down, K_w: to_move_up, K_d: to_move_right, K_a: to_move_left}
     to_move_flag = False
     level_cleared = False
+    is_dead = False
 
     pygame.time.set_timer(MYEVENTTYPE, 1000 // FPS)  # FPS
 
@@ -675,6 +1010,7 @@ if __name__ == '__main__':
             enemy.start('0', 0)
             enemy.end_walk = True
     while running:
+        step = player.step
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
         action = None
@@ -713,7 +1049,16 @@ if __name__ == '__main__':
                                     int(enem_sta[1]), int(enem_sta[2]), int(enem_sta[3]),
                                     int(enem_sta[4]), int(enem_sta[5]), enem_sta[6], int(enem_sta[7]))
                     continue
+                if event.key == K_SPACE:
+                    received_artefact = player.collides_with_artefact()
+                    if received_artefact:
+                        received_artefact.activate(player)
+                        artifact_inventory.append(received_artefact)
+                        received_artefact.delete_artifact()
+                if event.key == K_f:
+                    player.eat_fats()
             if event.type == pygame.KEYUP:
+                player.image = player_images[1]
                 moves_dict[event.key] = False
             if event.type == MYEVENTTYPE:
                 to_move_flag = True
@@ -725,22 +1070,26 @@ if __name__ == '__main__':
                     push = False
             if event.type == pygame.MOUSEMOTION:
                 x2, y2 = event.pos
-        if not to_move_flag:
-            continue
-        if moves_dict[K_s]:
-            action = 'down'
-            dy += step
-        elif moves_dict[K_w]:
-            action = 'up'
-            dy -= step
-        elif moves_dict[K_d]:
-            action = 'right'
-            dx += step
-        elif moves_dict[K_a]:
-            action = 'left'
-            dx -= step
-        if not player.will_collide(walls_group, action):
+        if to_move_flag:
+            if moves_dict[K_s]:
+                action = 'down'
+                dy += step
+            elif moves_dict[K_w]:
+                player.image = player_images[4]
+                action = 'up'
+                dy -= step
+            elif moves_dict[K_d]:
+                player.image = player_images[2]
+                action = 'right'
+                dx += step
+            elif moves_dict[K_a]:
+                player.image = player_images[3]
+                action = 'left'
+                dx -= step
+        if not player.will_collide(walls_group, action) and not is_dead:
             screen.fill('black')
+            make_void()
+            moved_player, moved_x, moved_y = generate_level(level)
             camera.update(dx, dy)
             ds = camera.return_d()
             for sprite in tiles_group:
@@ -860,11 +1209,13 @@ if __name__ == '__main__':
                 screen.blit(image_m, (x2 - 25, y2 - 25))
         if player.is_dead():
             player_group.empty()
+            camera = None
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                                True, pygame.Color('white'))
+                                               True, pygame.Color('white'))
             rect = string_rendered.get_rect()
             screen.blit(string_rendered, rect)
             artifact_inventory = []
+            is_dead = True
         player.show_stats()
 
         pygame.display.flip()

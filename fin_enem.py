@@ -562,7 +562,6 @@ def generate_level(level, player=None):
     all_sprites.empty()
     walls_group.empty()
     tiles_group.empty()
-    # enemy_group.empty()
     artefacts_group.empty()
     new_player, x, y = None, None, None
     for y in range(len(level)):
