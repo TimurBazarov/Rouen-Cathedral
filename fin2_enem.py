@@ -19,7 +19,8 @@ font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
                        '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤', '步',
-                       '巢', '惠', '莓', '圓']
+                       '巢', '惠', '莓', '圓', '聽', '實', '證', '龍', '賣','龜', '藝', '戰', '繩', '繪',
+                       '鐵', '圖', '團', '圍', '轉', '廣']
 push = False
 reload = True
 
@@ -158,9 +159,24 @@ artefacts_images = {
     '巢': load_image('artefacts/hanger.png'),
     '惠': load_image('artefacts/arrow.png'),
     '莓': load_image('artefacts/loki_horns.png'),
-    '圓': load_image('artefacts/chubby.png')
+    '圓': load_image('artefacts/chubby.png'),
+    '聽': load_image('artefacts/pentagramm.png'),
+    '實': load_image('artefacts/abaddon.png'),
+    '證': load_image('artefacts/cat9tails.png'),
+    '龍': load_image('artefacts/smb.png'),
+    '賣': load_image('artefacts/goat_head.png'),
+'龜': load_image('artefacts/pisces.png'),
+'藝': load_image('artefacts/aquarius.png'),
+'戰': load_image('artefacts/capricorn.png'),
+'繩': load_image('artefacts/saggitarius.png'),
+'繪': load_image('artefacts/libra.png'),
+'鐵': load_image('artefacts/virgo.png'),
+'圖': load_image('artefacts/scorpio.png'),
+'團': load_image('artefacts/leo.png'),
+'圍': load_image('artefacts/cancer.png'),
+'轉': load_image('artefacts/aries.png'),
+'廣': load_image('artefacts/taurus.png')
 }
-
 tile_width = tile_height = 50
 
 
@@ -260,8 +276,11 @@ class Player(pygame.sprite.Sprite):
                 f'Скорость: {self.step}',
                 f'Оружие: {self.gun}',
                 f'Дополнительные жизни: {additional_lifes}',
-                f'Урон: {self.gun.dmg}']
-        text_coord = 340
+                f'Урон: {self.gun.dmg}',
+                f'Дальность стрельбы: {self.gun.max_range}',
+                f'Скорострельность: {self.gun.fire_rate}',
+                f'Скорость полета пули: {self.gun.v}']
+        text_coord = 310
         for line in text:
             string_rendered = font_stats.render(line, True, pygame.Color('white'))
             rect = string_rendered.get_rect()
@@ -570,7 +589,8 @@ class Poop(Artefact):
         player.fats += 5
         player.ch += 30
         player.step = ceil(0.6 * player.step)
-        choose_random_empty_coords(level, is_poop=True)
+        for _ in range(5):
+            choose_random_empty_coords(level, is_poop=True)
 
 
 class Dessert(Artefact):
@@ -642,6 +662,7 @@ class Polyphemus(Artefact):
         player.step = ceil(player.step * 0.5)
         player.gun.dmg *= 3
         player.gun.fire_rate *= 2
+        player.gun.v -= 150
 
 
 class Bucket(Artefact):
@@ -682,6 +703,217 @@ class Chubby(Artefact):
         player.gun.max_range += 150
         player.fats += 40
         player.max_health += 15
+        player.step = ceil(player.step * 0.6)
+
+
+class Pentagramm(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 10
+        player.gun.max_range += 50
+        player.max_health -= 5
+        player.increase_health(-5)
+
+
+class Abaddon(Artefact):
+    def activate(self, player):
+        player.increase_health(player.health // 2)
+        player.max_health = player.max_health // 2
+        player.gun.dmg *= 2
+        player.gun.fire_rate = player.gun.fire_rate * 0.9
+        player.step += 1
+
+
+class Cat9Tails(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 10
+        player.gun.v += 200
+        player.step = ceil(player.step * 0.8)
+
+
+class SMB(Artefact):
+    def activate(self, player):
+        player.max_health += 10
+        player.gun.dmg += 8
+        player.gun.fire_rate = player.gun.fire_rate * 0.8
+        player.gun.max_range += 50
+        player.step += 1
+        player.health = player.max_health
+
+
+class Sniper(Artefact):
+    def activate(self, player):
+        player.gun.dmg *= 2
+        player.gun.fire_rate += 1
+        player.gun.max_range *= 2
+        player.gun.v = int(player.gun.v * 1.5)
+        player.gun.ch_cost *= 3
+        player.gun.name = 'sniper rifle'
+        player.gun.image = load_image('sniper_bullet.png')
+
+
+class Pisces(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 30
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Aquarius(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.5)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Capricorn(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 300
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Saggitarius(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 300
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Libra(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Virgo(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 3
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Scorpio(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(30)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Leo(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health += 30
+        player.fats += 3
+        player.ch += 30
+        player.luck += 1
+
+
+class Cancer(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 100
+        player.ch += 30
+        player.luck += 1
+
+
+class Aries(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 300
+        player.luck += 1
+
+
+class Taurus(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 3
+        player.gun.fire_rate = ceil(player.gun.fire_rate * 0.9)
+        player.gun.max_range += 30
+        player.gun.v += 30
+        player.gun.ch_cost = ceil(player.gun.ch_cost * 0.5)
+        player.step += 1
+        player.increase_health(-3)
+        player.max_health -= 3
+        player.fats += 3
+        player.ch += 30
+        player.luck += 3
 
 
 def choose_random_empty_coords(level, is_poop=False):
@@ -1034,8 +1266,52 @@ def generate_level(level, player=None):
                 LokiHorns('莓', x, y)
             elif level[y][x] == '圓':
                 Tile('empty', x, y)
-                Chubby('圓', x, y)
-
+                Pentagramm('圓', x, y)
+            elif level[y][x] == '聽':
+                Tile('empty', x, y)
+                Abaddon('聽', x, y)
+            elif level[y][x] == '證':
+                Tile('empty', x, y)
+                Cat9Tails('證', x, y)
+            elif level[y][x] == '龍':
+                Tile('empty', x, y)
+                SMB('龍', x, y)
+            elif level[y][x] == '賣':
+                Tile('empty', x, y)
+                Sniper('賣', x, y)
+            elif level[y][x] == '龜':
+                Tile('empty', x, y)
+                Pisces('龜', x, y)
+            elif level[y][x] == '藝':
+                Tile('empty', x, y)
+                Aquarius('藝', x, y)
+            elif level[y][x] == '戰':
+                Tile('empty', x, y)
+                Capricorn('戰', x, y)
+            elif level[y][x] == '繩':
+                Tile('empty', x, y)
+                Saggitarius('繩', x, y)
+            elif level[y][x] == '繪':
+                Tile('empty', x, y)
+                Libra('繪', x, y)
+            elif level[y][x] == '鐵':
+                Tile('empty', x, y)
+                Virgo('鐵', x, y)
+            elif level[y][x] == '圖':
+                Tile('empty', x, y)
+                Scorpio('圖', x, y)
+            elif level[y][x] == '團':
+                Tile('empty', x, y)
+                Leo('團', x, y)
+            elif level[y][x] == '圍':
+                Tile('empty', x, y)
+                Cancer('圍', x, y)
+            elif level[y][x] == '轉':
+                Tile('empty', x, y)
+                Aries('轉', x, y)
+            elif level[y][x] == '廣':
+                Tile('empty', x, y)
+                Taurus('廣', x, y)
     return new_player, x, y
 
 
@@ -1163,6 +1439,15 @@ if __name__ == '__main__':
             enemy.end_walk = True
     cycle_level_num = 0
     while running:
+        if player.is_dead():
+            player_group.empty()
+            camera = None
+            string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
+                                               True, pygame.Color('white'))
+            rect = string_rendered.get_rect()
+            screen.blit(string_rendered, rect)
+            artifact_inventory = []
+            is_dead = True
         step = player.step
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
@@ -1177,7 +1462,9 @@ if __name__ == '__main__':
                 '''Движение происходит, если плитка, в которую хочет перейти персонаж, не является стеной, и если
                     персонаж не выходит за рамки уровня.'''
                 moves_dict[event.key] = True
-                if event.key == pygame.K_e:  # and level_cleared
+                if event.key == pygame.K_e and level_cleared:
+                    if player.ch < 50:
+                        player.ch += 100
                     chance = False
                     cycle_level_num = (cycle_level_num + 1) % 5
                     if cycle_level_num in (0, 1, 2):
@@ -1284,7 +1571,9 @@ if __name__ == '__main__':
             player.image = player_images[3]
             action = 'left'
             dx -= step
-        if not player.will_collide(walls_group, action) and not is_dead:
+        if is_dead:
+            continue
+        if not player.will_collide(walls_group, action):
             screen.fill('black')
             make_void()
             # moved_player, moved_x, moved_y = generate_level(level)
@@ -1405,14 +1694,6 @@ if __name__ == '__main__':
             if 0 < y2 < 550:
                 pygame.mouse.set_visible(False)
                 screen.blit(image_m, (x2 - 25, y2 - 25))
-        if player.is_dead():
-            player_group.empty()
-            camera = None
-            string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                               True, pygame.Color('white'))
-            rect = string_rendered.get_rect()
-            screen.blit(string_rendered, rect)
-            artifact_inventory = []
-            is_dead = True
+
         player.show_stats()
         pygame.display.flip()
