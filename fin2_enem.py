@@ -18,7 +18,8 @@ font_stats = pygame.font.Font(None, 20)
 font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
-                       '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤']
+                       '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤', '步',
+                       '巢', '惠', '莓', '圓']
 push = False
 reload = True
 
@@ -152,7 +153,12 @@ artefacts_images = {
     '兔': load_image('artefacts/growth.png'),
     '妒': load_image('artefacts/christ.png'),
     '每': load_image('artefacts/halo.png'),
-    '壤': load_image('artefacts/polyphemus.png')
+    '壤': load_image('artefacts/polyphemus.png'),
+    '步': load_image('artefacts/bucket.png'),
+    '巢': load_image('artefacts/hanger.png'),
+    '惠': load_image('artefacts/arrow.png'),
+    '莓': load_image('artefacts/loki_horns.png'),
+    '圓': load_image('artefacts/chubby.png')
 }
 
 tile_width = tile_height = 50
@@ -638,6 +644,46 @@ class Polyphemus(Artefact):
         player.gun.fire_rate *= 2
 
 
+class Bucket(Artefact):
+    def activate(self, player):
+        player.fats += 15
+        player.health += 20
+        player.gun.dmg += 15
+        player.gun.fire_rate *= 1.5
+
+
+class Hanger(Artefact):
+    def activate(self, player):
+        player.step += 2
+        player.ch += 65
+        player.gun.max_range += 250
+        player.gun.ch_cost += 5
+
+
+class Arrow(Artefact):
+    def activate(self, player):
+        player.increase_health(30)
+        player.gun.fire_rate = player.gun.fire_rate * 0.6
+        player.gun.max_range += 300
+        player.gun.dmg += 50
+
+
+class LokiHorns(Artefact):
+    def activate(self, player):
+        player.luck += 1
+        player.step += 2
+        player.increase_health(-5)
+        player.gun.dmg += 20
+
+
+class Chubby(Artefact):
+    def activate(self, player):
+        player.gun.dmg += 15
+        player.gun.max_range += 150
+        player.fats += 40
+        player.max_health += 15
+
+
 def choose_random_empty_coords(level, is_poop=False):
     empty = []
     for y in range(len(level)):
@@ -974,6 +1020,21 @@ def generate_level(level, player=None):
             elif level[y][x] == '壤':
                 Tile('empty', x, y)
                 Polyphemus('壤', x, y)
+            elif level[y][x] == '步':
+                Tile('empty', x, y)
+                Bucket('步', x, y)
+            elif level[y][x] == '巢':
+                Tile('empty', x, y)
+                Hanger('巢', x, y)
+            elif level[y][x] == '惠':
+                Tile('empty', x, y)
+                Arrow('惠', x, y)
+            elif level[y][x] == '莓':
+                Tile('empty', x, y)
+                LokiHorns('莓', x, y)
+            elif level[y][x] == '圓':
+                Tile('empty', x, y)
+                Chubby('圓', x, y)
 
     return new_player, x, y
 
