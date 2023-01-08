@@ -48,11 +48,11 @@ def terminate():
 
 
 def start_screen():
-    intro_text = ['Перемещение героя',
+    intro_text = ['Игра',
                   '',
-                  'Камера']
+                  'Ж']
 
-    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('fon.jpeg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     clock = pygame.time.Clock()
 
@@ -1441,13 +1441,18 @@ if __name__ == '__main__':
     while running:
         if player.is_dead():
             player_group.empty()
-            camera = None
             string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                               True, pygame.Color('white'))
-            rect = string_rendered.get_rect()
-            screen.blit(string_rendered, rect)
+                                          True, pygame.Color('black'))
+            intro_rect = string_rendered.get_rect()
+            text_coord = 0
+            intro_rect.top = text_coord
+            intro_rect.x = 10
+            text_coord += intro_rect.height
+            screen.blit(string_rendered, intro_rect)
+            pygame.display.flip()
             artifact_inventory = []
-            is_dead = True
+            time.sleep(5)
+            terminate()
         step = player.step
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
@@ -1694,6 +1699,5 @@ if __name__ == '__main__':
             if 0 < y2 < 550:
                 pygame.mouse.set_visible(False)
                 screen.blit(image_m, (x2 - 25, y2 - 25))
-
         player.show_stats()
         pygame.display.flip()
