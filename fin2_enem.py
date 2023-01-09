@@ -10,6 +10,7 @@ import csv
 import time
 import math
 
+
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 1280, 768
@@ -21,6 +22,7 @@ full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '�
                        '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤', '步',
                        '巢', '惠', '莓', '圓', '聽', '實', '證', '龍', '賣','龜', '藝', '戰', '繩', '繪',
                        '鐵', '圖', '團', '圍', '轉', '廣']
+levels_counter = 0
 push = False
 reload = True
 
@@ -50,7 +52,37 @@ def terminate():
 def start_screen():
     intro_text = ['Игра',
                   '',
-                  'Ж']
+                  'Scarlet Before Black']
+
+    fon = pygame.transform.scale(load_image('fon1.jpeg'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+    clock = pygame.time.Clock()
+
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, True, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def end_screen():
+    intro_text = ['Игра',
+                  'Окончена',
+                  f'Пройденное количество уровней: {levels_counter}']
 
     fon = pygame.transform.scale(load_image('fon.jpeg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
@@ -195,119 +227,6 @@ class Tile(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
-        self.image = player_images[1]
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x + 15, tile_height * pos_y + 5)
-        #  от углеводов (ch) зависит сколько выстрелов может сделать игрок
-        #  Жиры () - ресурс. при неполном здоровье можно восстановить хп, буквально съев свой жир
-        #  ЖУ (Жиры Углеводы) можно получить за подбираемые предметы или за убийство врагов
-        self.max_health = 100
-        self.health = 100
-        self.fats = 20
-        self.ch = 100  # carbohydrates
-        # Статы
-        self.speed = 5
-        self.luck = 0  # Можно повысить или понизить артефактами
-        self.step = 5
-        self.gun = None
-        self.mask = pygame.mask.from_surface(self.image)
-
-    def will_collide(self, walls_group, action):
-        if action is None:
-            return
-        if action == 'up':
-            self.rect.y -= step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
-                self.rect.y += step
-                return True
-            self.rect.y += step
-            return False
-        elif action == 'down':
-            self.rect.y += step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
-                self.rect.y -= step
-                return True
-            self.rect.y -= step
-            return False
-        elif action == 'right':
-            self.rect.x += step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
-                self.rect.x -= step
-                return True
-            self.rect.x -= step
-            return False
-        elif action == 'left':
-            self.rect.x -= step
-            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
-            if result:
-                self.rect.x += step
-                return True
-            self.rect.x += step
-            return False
-
-    def check_health_is_max(self):
-        if self.health > self.max_health:
-            self.ch += self.health - self.max_health
-            self.health = self.max_health
-
-    def increase_health(self, value):
-        self.health += value
-        self.check_health_is_max()
-
-    def collides_with_artefact(self):
-        for sprite in artefacts_group:
-            if pygame.sprite.collide_mask(self, sprite):
-                return sprite
-
-    def show_stats(self):
-        global additional_lifes
-        text = [f'Здоровье: {self.health if self.health > 0 else 0}',
-                f'Макс. здоровье: {self.max_health}',
-                f'Жиры: {self.fats}',
-                f'Углеводы: {self.ch}',
-                f'Удача: {self.luck}',
-                f'Скорость: {self.step}',
-                f'Оружие: {self.gun}',
-                f'Дополнительные жизни: {additional_lifes}',
-                f'Урон: {self.gun.dmg}',
-                f'Дальность стрельбы: {self.gun.max_range}',
-                f'Скорострельность: {self.gun.fire_rate}',
-                f'Скорость полета пули: {self.gun.v}']
-        text_coord = 310
-        for line in text:
-            string_rendered = font_stats.render(line, True, pygame.Color('white'))
-            rect = string_rendered.get_rect()
-            text_coord += 10
-            rect.top = text_coord
-            rect.x = 10
-            text_coord += rect.height
-            screen.blit(string_rendered, rect)
-
-    def is_dead(self):
-        global additional_lifes
-        if self.health > 0:
-            return False
-        if additional_lifes > 0:
-            self.health = 100
-            self.ch = self.ch // 2
-            self.fats = self.fats // 2
-            additional_lifes -= 1
-            return False
-        return True
-
-    def eat_fats(self):
-        value = min(self.max_health - self.health, self.fats)
-        self.health += value
-        self.fats -= value
-
-
 class Weapon:
     def __init__(self, name, pix, pix_bul, max_range, fire_rate, v, x1, y1, dmg):
         self.name = name
@@ -328,6 +247,8 @@ class Weapon:
         screen.blit(ima, (0, 500))
 
     def piu(self):
+        if player.ch < self.ch_cost:
+            return
         xx = abs(self.x1 - x2)
         yy = abs(self.y1 - y2)
         if xx == 0:
@@ -929,6 +850,119 @@ def choose_random_empty_coords(level, is_poop=False):
         level[y][x] = choice(full_artefacts_list)
 
 
+class Player(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(player_group, all_sprites)
+        self.image = player_images[1]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x + 15, tile_height * pos_y + 5)
+        #  от углеводов (ch) зависит сколько выстрелов может сделать игрок
+        #  Жиры () - ресурс. при неполном здоровье можно восстановить хп, буквально съев свой жир
+        #  ЖУ (Жиры Углеводы) можно получить за подбираемые предметы или за убийство врагов
+        self.max_health = 100
+        self.health = 100
+        self.fats = 20
+        self.ch = 100  # carbohydrates
+        # Статы
+        self.speed = 5
+        self.luck = 0  # Можно повысить или понизить артефактами
+        self.step = 5
+        self.gun = None
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def will_collide(self, walls_group, action):
+        if action is None:
+            return
+        if action == 'up':
+            self.rect.y -= step
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
+                self.rect.y += step
+                return True
+            self.rect.y += step
+            return False
+        elif action == 'down':
+            self.rect.y += step
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
+                self.rect.y -= step
+                return True
+            self.rect.y -= step
+            return False
+        elif action == 'right':
+            self.rect.x += step
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
+                self.rect.x -= step
+                return True
+            self.rect.x -= step
+            return False
+        elif action == 'left':
+            self.rect.x -= step
+            result = any(list(map(lambda sprite: pygame.sprite.collide_mask(self, sprite), walls_group)))
+            if result:
+                self.rect.x += step
+                return True
+            self.rect.x += step
+            return False
+
+    def check_health_is_max(self):
+        if self.health > self.max_health:
+            self.ch += self.health - self.max_health
+            self.health = self.max_health
+
+    def increase_health(self, value):
+        self.health += value
+        self.check_health_is_max()
+
+    def collides_with_artefact(self):
+        for sprite in artefacts_group:
+            if pygame.sprite.collide_mask(self, sprite):
+                return sprite
+
+    def show_stats(self):
+        global additional_lifes
+        text = [f'Здоровье: {self.health if self.health > 0 else 0}',
+                f'Макс. здоровье: {self.max_health}',
+                f'Жиры: {self.fats}',
+                f'Углеводы: {self.ch}',
+                f'Удача: {self.luck}',
+                f'Скорость: {self.step}',
+                f'Оружие: {self.gun}',
+                f'Дополнительные жизни: {additional_lifes}',
+                f'Урон: {self.gun.dmg}',
+                f'Дальность стрельбы: {self.gun.max_range}',
+                f'Скорострельность: {self.gun.fire_rate}',
+                f'Скорость полета пули: {self.gun.v}']
+        text_coord = 310
+        for line in text:
+            string_rendered = font_stats.render(line, True, pygame.Color('white'))
+            rect = string_rendered.get_rect()
+            text_coord += 10
+            rect.top = text_coord
+            rect.x = 10
+            text_coord += rect.height
+            screen.blit(string_rendered, rect)
+
+    def is_dead(self):
+        global additional_lifes
+        if self.health > 0:
+            return False
+        if additional_lifes > 0:
+            self.health = 100
+            self.ch = self.ch // 2
+            self.fats = self.fats // 2
+            additional_lifes -= 1
+            return False
+        return True
+
+    def eat_fats(self):
+        value = min(self.max_health - self.health, self.fats)
+        self.health += value
+        self.fats -= value
+
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, pix, v, hp, dmg):
         if level[pos_y][pos_x] != '#':
@@ -1324,7 +1358,7 @@ def find_player(level):
 
 def make_void():
     for _ in range(1000):
-        screen.set_at((randint(0, 649), randint(0, 649)), 'white')
+        screen.set_at((randint(0, WIDTH), randint(0, HEIGHT)), 'white')
 
 
 class Camera:
@@ -1440,19 +1474,7 @@ if __name__ == '__main__':
     cycle_level_num = 0
     while running:
         if player.is_dead():
-            player_group.empty()
-            string_rendered = font_dead.render('Вы мертвы! Чтобы начать новую игру, перезапуститесь',
-                                          True, pygame.Color('black'))
-            intro_rect = string_rendered.get_rect()
-            text_coord = 0
-            intro_rect.top = text_coord
-            intro_rect.x = 10
-            text_coord += intro_rect.height
-            screen.blit(string_rendered, intro_rect)
-            pygame.display.flip()
-            artifact_inventory = []
-            time.sleep(5)
-            terminate()
+            end_screen()
         step = player.step
         if len(enemy_group) == 0:  # Если уровень зачищен
             level_cleared = True
@@ -1468,8 +1490,9 @@ if __name__ == '__main__':
                     персонаж не выходит за рамки уровня.'''
                 moves_dict[event.key] = True
                 if event.key == pygame.K_e and level_cleared:
+                    levels_counter += 1
                     if player.ch < 50:
-                        player.ch += 100
+                        player.ch = 50
                     chance = False
                     cycle_level_num = (cycle_level_num + 1) % 5
                     if cycle_level_num in (0, 1, 2):
