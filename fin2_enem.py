@@ -54,7 +54,7 @@ def start_screen():
                   '',
                   'Scarlet Before Black']
 
-    fon = pygame.transform.scale(load_image('fon1.jpeg'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('fon1.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     clock = pygame.time.Clock()
 
