@@ -54,7 +54,7 @@ def start_screen():
                   '',
                   'Scarlet Before Black']
 
-    fon = pygame.transform.scale(load_image('fon1.jpg'), (WIDTH, HEIGHT))
+    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     clock = pygame.time.Clock()
 
@@ -107,6 +107,8 @@ def end_screen():
                 return
         pygame.display.flip()
         clock.tick(FPS)
+        time.sleep(5)
+        terminate()
 
 
 def load_level(filename):
