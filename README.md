@@ -1,2 +1,2 @@
 # Rouen-Cathedral
-To run the game open file fin2_enem.py in dist
+To run the game open file fin2_enem.exe in dist
