@@ -10,7 +10,6 @@ import csv
 import time
 import math
 
-
 FPS = 50
 pygame.init()
 size = WIDTH, HEIGHT = 1280, 768
@@ -20,7 +19,7 @@ font_dead = pygame.font.Font(None, 28)
 screen = pygame.display.set_mode(size)
 full_artefacts_list = ['1', '電', '買', '車', '红', '無', '東', '馬', '風', '愛', '時', '鳥', '島', '語', '頭', '魚', '園',
                        '長', '紙', '書', '見', '響', '假', '佛', '德', '黑', '拜', '冰', '兔', '妒', '每', '壤', '步',
-                       '巢', '惠', '莓', '圓', '聽', '實', '證', '龍', '賣','龜', '藝', '戰', '繩', '繪',
+                       '巢', '惠', '莓', '圓', '聽', '實', '證', '龍', '賣', '龜', '藝', '戰', '繩', '繪',
                        '鐵', '圖', '團', '圍', '轉', '廣']
 levels_counter = 0
 push = False
@@ -199,17 +198,17 @@ artefacts_images = {
     '證': load_image('artefacts/cat9tails.png'),
     '龍': load_image('artefacts/smb.png'),
     '賣': load_image('artefacts/goat_head.png'),
-'龜': load_image('artefacts/pisces.png'),
-'藝': load_image('artefacts/aquarius.png'),
-'戰': load_image('artefacts/capricorn.png'),
-'繩': load_image('artefacts/saggitarius.png'),
-'繪': load_image('artefacts/libra.png'),
-'鐵': load_image('artefacts/virgo.png'),
-'圖': load_image('artefacts/scorpio.png'),
-'團': load_image('artefacts/leo.png'),
-'圍': load_image('artefacts/cancer.png'),
-'轉': load_image('artefacts/aries.png'),
-'廣': load_image('artefacts/taurus.png')
+    '龜': load_image('artefacts/pisces.png'),
+    '藝': load_image('artefacts/aquarius.png'),
+    '戰': load_image('artefacts/capricorn.png'),
+    '繩': load_image('artefacts/saggitarius.png'),
+    '繪': load_image('artefacts/libra.png'),
+    '鐵': load_image('artefacts/virgo.png'),
+    '圖': load_image('artefacts/scorpio.png'),
+    '團': load_image('artefacts/leo.png'),
+    '圍': load_image('artefacts/cancer.png'),
+    '轉': load_image('artefacts/aries.png'),
+    '廣': load_image('artefacts/taurus.png')
 }
 tile_width = tile_height = 50
 
